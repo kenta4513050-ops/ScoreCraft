@@ -1,244 +1,167 @@
 // ============================================
 // ScoreCraft
-// settings.js
+// settings.js（保存安定化版）
 // ============================================
 
-document.addEventListener(
-
-    "DOMContentLoaded",
-
-    initializeSettings
-
-);
-
-
-//============================================
-// 初期化
-//============================================
-
-function initializeSettings(){
-
-    renderNavigation("settings");
-
-    createInputItems();
-
-    loadSettings();
-
-    document
-        .getElementById("saveButton")
-        .addEventListener(
-            "click",
-            saveSettings
-        );
-
-document
-    .getElementById("inputMode")
-    .addEventListener(
-        "change",
-        changeInputMode
-    );
-
-}
-
-//
-// カスタム入力項目
-//
+"use strict";
 
 const INPUT_ITEMS = [
-
-    {
-        key:"score",
-        name:"スコア"
-    },
-
-    {
-        key:"putt",
-        name:"パット数"
-    },
-
-    {
-        key:"greenDistance",
-        name:"グリーン距離"
-    },
-
-    {
-        key:"teeClub",
-        name:"ティーショットクラブ"
-    },
-
-    {
-        key:"direction",
-        name:"方向"
-    },
-
-    {
-        key:"ob",
-        name:"OB"
-    },
-
-    {
-        key:"onePenalty",
-        name:"1ペナ"
-    },
-
-    {
-        key:"bunker",
-        name:"バンカー"
-    },
-
-    {
-        key:"memo",
-        name:"メモ"
-    }
-
+    { key: "score", name: "スコア" },
+    { key: "putt", name: "パット数" },
+    { key: "greenDistance", name: "グリーン距離" },
+    { key: "teeClub", name: "ティーショットクラブ" },
+    { key: "direction", name: "方向" },
+    { key: "ob", name: "OB" },
+    { key: "onePenalty", name: "1ペナ" },
+    { key: "bunker", name: "バンカー" },
+    { key: "memo", name: "メモ" }
 ];
 
-//============================================
-// 入力項目一覧生成
-//============================================
+let savedCustomInputs = null;
 
-function createInputItems(){
+document.addEventListener("DOMContentLoaded", initializeSettings);
+window.addEventListener("pageshow", event => {
+    if (event.persisted) loadSettings();
+});
 
-    const container =
-        document.getElementById("customInputs");
+function initializeSettings() {
+    renderNavigation("settings");
+    createInputItems();
+    loadSettings();
 
-    if(!container){
+    const saveButton = document.getElementById("saveButton");
+    const inputMode = document.getElementById("inputMode");
 
-        return;
+    if (saveButton) saveButton.addEventListener("click", saveSettings);
+    if (inputMode) inputMode.addEventListener("change", changeInputMode);
+}
 
-    }
+function createInputItems() {
+    const container = document.getElementById("customInputs");
+    if (!container) return;
 
     container.innerHTML = "";
-
     const config = getConfig();
+    savedCustomInputs = { ...config.enabledInputs };
 
-    INPUT_ITEMS.forEach(item=>{
-
-        const label =
-            document.createElement("label");
-
+    INPUT_ITEMS.forEach(item => {
+        const label = document.createElement("label");
         label.className = "setting-item";
 
-        const checkbox =
-            document.createElement("input");
-
+        const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-
         checkbox.id = item.key;
+        checkbox.checked = Boolean(config.enabledInputs[item.key]);
 
-        checkbox.checked =
-            config.enabledInputs[item.key] ?? false;
-
-        const text =
-            document.createElement("span");
-
+        const text = document.createElement("span");
         text.textContent = item.name;
 
-        label.appendChild(checkbox);
-
-        label.appendChild(text);
-
+        label.append(checkbox, text);
         container.appendChild(label);
-
     });
-
 }
 
-//============================================
-// 設定読み込み
-//============================================
-
-function loadSettings(){
-
+function loadSettings() {
     const config = getConfig();
+    savedCustomInputs = { ...config.enabledInputs };
 
-    document.getElementById("inputMode").value =
-        config.inputMode;
+    const inputMode = document.getElementById("inputMode");
+    const distanceUnit = document.getElementById("distanceUnit");
+    if (inputMode) inputMode.value = config.inputMode;
+    if (distanceUnit) distanceUnit.value = config.distanceUnit;
 
-    document.getElementById("distanceUnit").value =
-        config.distanceUnit;
-
-    changeInputMode();
-
-}
-
-//============================================
-// 設定保存
-//============================================
-
-function saveSettings(){
-
-    const config = getConfig();
-
-    config.inputMode =
-        document.getElementById("inputMode").value;
-
-    config.distanceUnit =
-        document.getElementById("distanceUnit").value;
-
-    INPUT_ITEMS.forEach(item=>{
-
-        config.enabledInputs[item.key] =
-            document.getElementById(item.key).checked;
-
+    INPUT_ITEMS.forEach(item => {
+        const checkbox = document.getElementById(item.key);
+        if (checkbox) checkbox.checked = Boolean(config.enabledInputs[item.key]);
     });
 
-    saveConfig(config);
-
-    changeInputMode();
-
-    showMessage("設定を保存しました！");
-
+    changeInputMode(false);
 }
 
-//============================================
-// 入力モード変更
-//============================================
+function saveSettings() {
+    const button = document.getElementById("saveButton");
+    const modeElement = document.getElementById("inputMode");
+    const unitElement = document.getElementById("distanceUnit");
+    if (!modeElement || !unitElement) return;
 
-function changeInputMode(){
+    const mode = modeElement.value;
+    const current = getConfig();
+    const enabledInputs = { ...current.enabledInputs };
 
-    const mode =
-        document.getElementById("inputMode").value;
+    if (mode === INPUT_MODES.CUSTOM) {
+        INPUT_ITEMS.forEach(item => {
+            const checkbox = document.getElementById(item.key);
+            enabledInputs[item.key] = checkbox ? checkbox.checked : false;
+        });
+        enabledInputs.score = true;
+    } else if (mode === INPUT_MODES.SIMPLE) {
+        Object.keys(enabledInputs).forEach(key => {
+            enabledInputs[key] = key === "score";
+        });
+    } else {
+        enabledInputs.score = true;
+        enabledInputs.putt = true;
+        enabledInputs.greenDistance = false;
+        enabledInputs.teeClub = true;
+        enabledInputs.direction = true;
+        enabledInputs.ob = true;
+        enabledInputs.onePenalty = true;
+        enabledInputs.bunker = true;
+        enabledInputs.memo = false;
+    }
 
-    INPUT_ITEMS.forEach(item=>{
+    try {
+        if (button) button.disabled = true;
+        const saved = saveConfig({
+            ...current,
+            inputMode: mode,
+            distanceUnit: unitElement.value,
+            enabledInputs
+        });
 
-        const checkbox =
-            document.getElementById(item.key);
+        savedCustomInputs = { ...saved.enabledInputs };
+        loadSettings();
+        showMessage("設定を保存しました！");
+    } catch (error) {
+        showMessage("設定を保存できませんでした。Safariのプライベートブラウズを解除して、もう一度お試しください。", "#c62828");
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
 
-        if (!checkbox) {
+function changeInputMode(rememberCurrent = true) {
+    const modeElement = document.getElementById("inputMode");
+    if (!modeElement) return;
+    const mode = modeElement.value;
 
-            return;
-
+    // カスタムから別モードへ切り替える前に、現在の選択を一時保持。
+    if (rememberCurrent) {
+        const anyEnabled = INPUT_ITEMS.some(item => {
+            const checkbox = document.getElementById(item.key);
+            return checkbox && !checkbox.disabled;
+        });
+        if (anyEnabled) {
+            savedCustomInputs = savedCustomInputs || {};
+            INPUT_ITEMS.forEach(item => {
+                const checkbox = document.getElementById(item.key);
+                if (checkbox) savedCustomInputs[item.key] = checkbox.checked;
+            });
         }
+    }
 
-        switch(mode){
+    INPUT_ITEMS.forEach(item => {
+        const checkbox = document.getElementById(item.key);
+        if (!checkbox) return;
 
-            case INPUT_MODES.SIMPLE:
-
-                checkbox.checked =
-                    (item.key === "score");
-
-                checkbox.disabled = true;
-
-                break;
-
-            case INPUT_MODES.STANDARD:
-
-                checkbox.checked =
-                    DEFAULT_CONFIG.enabledInputs[item.key];
-
-                checkbox.disabled = true;
-
-                break;
-
-            case INPUT_MODES.CUSTOM:
-
-                checkbox.disabled = false;
-
-                break;
-
+        if (mode === INPUT_MODES.SIMPLE) {
+            checkbox.checked = item.key === "score";
+            checkbox.disabled = true;
+        } else if (mode === INPUT_MODES.STANDARD) {
+            checkbox.checked = Boolean(DEFAULT_CONFIG.enabledInputs[item.key]);
+            checkbox.disabled = true;
+        } else {
+            checkbox.checked = item.key === "score" ? true : Boolean(savedCustomInputs?.[item.key]);
+            checkbox.disabled = item.key === "score";
         }
-
     });
-
 }

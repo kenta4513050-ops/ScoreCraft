@@ -309,7 +309,7 @@ function saveClubs(){
         group.clubs.forEach(club=>{
 
             const checkbox =
-                document.getElementById(club);
+                document.getElementById(club.id);
 
             if(checkbox.checked){
 
@@ -364,7 +364,7 @@ function loadMyClubs(){
         group.clubs.forEach(club=>{
 
             const checkbox =
-                document.getElementById(club);
+                document.getElementById(club.id);
 
             if(checkbox){
 
