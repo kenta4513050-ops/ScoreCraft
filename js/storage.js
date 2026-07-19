@@ -147,6 +147,10 @@ const CLUB_KEY = "scorecraft_clubs";
 
 function saveMyClubs(clubs){
 
+    if (!Array.isArray(clubs)) {
+        throw new TypeError("クラブデータは配列で指定してください。");
+    }
+
     localStorage.setItem(
 
         CLUB_KEY,

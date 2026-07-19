@@ -321,9 +321,32 @@ function saveClubs(){
 
     });
 
-    saveMyClubs(selected);
+    try {
 
-    showMessage("マイクラブを保存しました！");
+        saveMyClubs(selected);
+
+        const saved = getMyClubs();
+        const savedCorrectly =
+            Array.isArray(saved) &&
+            saved.length === selected.length &&
+            selected.every(id => saved.includes(id));
+
+        if (!savedCorrectly) {
+            throw new Error("保存内容を確認できませんでした。");
+        }
+
+        showMessage("マイクラブを保存しました！");
+
+        window.setTimeout(() => {
+            location.href = "settings.html";
+        }, 450);
+
+    } catch (error) {
+
+        console.error("マイクラブを保存できませんでした。", error);
+        showMessage("マイクラブを保存できませんでした。もう一度お試しください。");
+
+    }
 
 }
 

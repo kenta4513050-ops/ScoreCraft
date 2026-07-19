@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "scorecraft-v2-edit-mode-standard";
+const CACHE_NAME = "scorecraft-v2-iphone-fix-redirect-v1";
 const APP_FILES = [
   "./",
   "./index.html",

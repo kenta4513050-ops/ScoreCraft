@@ -127,6 +127,14 @@ function initializeRound() {
     roundState.round =
         editRound || loadDraftRound() || createNewRound();
 
+    // 新規入力では、設定画面で選択した最新モードを必ず反映する。
+    // 既存の下書きが残っていても、入力済みデータは維持したまま表示項目だけ更新する。
+    if (!roundState.editMode) {
+        roundState.round.inputMode = roundState.config.inputMode;
+        roundState.round.distanceUnit = roundState.config.distanceUnit;
+        roundState.round.enabledInputs = getInputsForMode(roundState.config.inputMode);
+    }
+
     roundState.currentHole =
         getFirstIncompleteHole();
 
