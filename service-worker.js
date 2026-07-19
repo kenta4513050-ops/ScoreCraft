@@ -1,13 +1,13 @@
 "use strict";
 
-const CACHE_NAME = "scorecraft-v3-1-settings-storage-fix";
+const CACHE_NAME = "scorecraft-v1-1-csv-import";
 const APP_FILES = [
   "./", "./index.html", "./round.html", "./history.html", "./analysis.html",
-  "./myclubs.html", "./settings.html", "./course-management.html",
+  "./myclubs.html", "./settings.html", "./course-management.html", "./import-rounds.html",
   "./manifest.webmanifest", "./css/style.css", "./js/app.js", "./js/config.js",
   "./js/storage.js", "./js/navigation.js", "./js/index.js", "./js/courseDatabase.js",
   "./js/round.js", "./js/history.js", "./js/analysis.js", "./js/clubs.js",
-  "./js/settings.js", "./js/dataManagement.js", "./js/courseManagement.js",
+  "./js/settings.js", "./js/dataManagement.js", "./js/courseManagement.js", "./js/csvImport.js",
   "./icons/icon-192.png", "./icons/icon-512.png"
 ];
 

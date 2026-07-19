@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2E7D32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ScoreCraft">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>ScoreCraft - ラウンド取込</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>📥 ラウンド取込</h1>
+  <p>過去のスコアをCSVから移行</p>
+</header>
+<main>
+  <section class="card import-guide-card">
+    <h2>CSVファイルを選択</h2>
+    <p class="section-description">楽天GORAやGOLF NETWORKのデータをCSVにできる場合、そのまま読み込んで候補を確認できます。列名が異なる場合も、一般的な日本語・英語表記を自動判定します。</p>
+    <button id="selectCsvButton" class="btn" type="button">📄 CSVを選択</button>
+    <input id="csvFileInput" type="file" accept=".csv,text/csv,text/plain" hidden>
+    <button id="downloadTemplateButton" class="secondary-button data-action-button" type="button">⬇️ ScoreCraft用テンプレートCSV</button>
+    <p class="data-note">対応例：ラウンド日、ゴルフ場、合計スコア、OUT、IN、PAR、1〜18番のスコア・PAR・パット。CSVに合計情報しかない場合も履歴として登録できます。</p>
+  </section>
+
+  <section id="importStatusCard" class="card" hidden>
+    <h2>読込結果</h2>
+    <div id="importSummary" class="import-summary"></div>
+    <div id="importWarnings" class="import-warnings"></div>
+  </section>
+
+  <section id="importPreviewCard" class="card" hidden>
+    <div class="section-heading">
+      <div>
+        <h2>登録前の確認</h2>
+        <p class="section-description">チェックを外したラウンドは登録されません。</p>
+      </div>
+    </div>
+    <div class="import-toolbar">
+      <button id="selectAllButton" class="small-secondary-button" type="button">すべて選択</button>
+      <button id="clearAllButton" class="small-secondary-button" type="button">すべて解除</button>
+    </div>
+    <div id="importPreviewList" class="import-preview-list"></div>
+    <button id="executeImportButton" class="btn" type="button">選択したラウンドを登録</button>
+    <div id="importMessage" class="data-message" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <button class="secondary-button data-action-button" type="button" onclick="location.href='settings.html'">← 設定に戻る</button>
+  </section>
+</main>
+<div id="navigation"></div>
+<script src="js/app.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/csvImport.js"></script>
+</body>
+</html>
