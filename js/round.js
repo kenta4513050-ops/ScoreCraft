@@ -2650,6 +2650,25 @@ function finishRound() {
 
     try {
 
+        // 未登録コースで18ホールのPARが揃っている場合は、
+        // 通常入力からの保存でもゴルフ場管理へ自動登録する。
+        if (typeof ensureCourseFromRound === "function") {
+
+            const registeredCourse = ensureCourseFromRound(
+                completedRound,
+                { source: "normal-round-save" }
+            );
+
+            if (registeredCourse) {
+                completedRound.courseId = registeredCourse.id;
+                completedRound.coursePrefecture =
+                    completedRound.coursePrefecture || registeredCourse.prefecture || "";
+                completedRound.courseLayoutName =
+                    completedRound.courseLayoutName || registeredCourse.courseName || "";
+            }
+
+        }
+
         if (roundState.editMode) {
 
             const savedRounds =

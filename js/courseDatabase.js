@@ -312,6 +312,54 @@ function isCustomCourse(courseId) {
     return getCustomCourses().some(item => item.id === courseId);
 }
 
+
+// ============================================
+// ラウンド情報から未登録コースを自動登録
+// ============================================
+function normalizeCourseIdentity(value) {
+    return String(value || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .toLowerCase();
+}
+
+function ensureCourseFromRound(round, options = {}) {
+    if (!round || !String(round.courseName || "").trim() || !Array.isArray(round.holes)) {
+        return null;
+    }
+
+    const pars = round.holes
+        .slice()
+        .sort((a, b) => Number(a.hole) - Number(b.hole))
+        .map(hole => Number(hole.par));
+
+    if (pars.length !== 18 || pars.some(par => !Number.isFinite(par) || par < 3 || par > 6)) {
+        return null;
+    }
+
+    const name = String(round.courseName).trim();
+    const layout = String(round.courseLayoutName || "").trim();
+    const existing = getCourseDatabase().find(course =>
+        normalizeCourseIdentity(course.name) === normalizeCourseIdentity(name) &&
+        normalizeCourseIdentity(course.courseName || "") === normalizeCourseIdentity(layout)
+    );
+
+    if (existing) return existing;
+
+    const course = {
+        id: createCourseId(),
+        name,
+        prefecture: String(round.coursePrefecture || "").trim(),
+        courseName: layout || "18ホール",
+        holes: pars.map((par, index) => ({ hole: index + 1, par })),
+        isCustom: true,
+        createdFrom: options.source || "round-save",
+        createdAt: new Date().toISOString()
+    };
+
+    return upsertCustomCourse(course);
+}
+
 function cloneCourse(course) {
 
     return {

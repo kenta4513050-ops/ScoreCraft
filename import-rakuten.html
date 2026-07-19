@@ -7,38 +7,39 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <title>ScoreCraft - 楽天スコア画像取込 Ver1.2.5</title>
+  <title>ScoreCraft - 過去ラウンド入力 Ver1.3.0</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <header class="app-header">
-  <h1>📷 楽天スコア画像取込</h1>
-  <p>楽天スコアカード専用解析・画像を1～2枚選択</p>
+  <h1>📝 過去ラウンド入力</h1>
+  <p>スクリーンショットを見ながら、正確に素早く登録</p>
 </header>
 <main class="rakuten-import-page">
   <section class="card">
-    <h2>1. スクリーンショットを選択</h2>
-    <p class="section-description">楽天ゴルフスコア管理アプリの「スコアカード」画面を横向きで選んでください。表の行位置を固定レイアウトとして判定します。左右に分かれる場合は、同じラウンドの画像を2枚選択します。</p>
-    <label class="image-picker" for="rakutenImages">
+    <h2>1. 参考画像を選択</h2>
+    <p class="section-description">楽天などのスコアカード画像を1～2枚表示できます。画像は端末内で表示するだけで、外部へ送信しません。</p>
+    <label class="image-picker" for="referenceImages">
       <span class="image-picker-icon">🖼️</span>
       <strong>写真ライブラリから選択</strong>
       <span>JPEG・PNG／最大2枚</span>
     </label>
-    <input id="rakutenImages" type="file" accept="image/*" multiple hidden>
+    <input id="referenceImages" type="file" accept="image/*" multiple hidden>
     <div id="imagePreviewList" class="import-image-preview-list"></div>
-    <button id="analyzeButton" class="btn" type="button" disabled>🔍 画像を自動解析</button>
-    <p class="data-note">画像解析時のみインターネット接続が必要です。読み取り後は、日付・コース名・各ホールのPAR、スコア、パット、方向、クラブ、バンカー、OB、1ペナを必ず確認してください。</p>
-    <div id="ocrProgress" class="ocr-progress" hidden>
-      <div class="ocr-progress-track"><div id="ocrProgressBar" class="ocr-progress-bar"></div></div>
-      <p id="ocrProgressText">準備中...</p>
-    </div>
-    <div id="importMessage" class="data-message" aria-live="polite"></div>
   </section>
 
-  <section id="resultSection" class="card" hidden>
-    <h2>2. 読み取り結果を確認</h2>
-    <p class="section-description">誤認識があれば修正してから保存してください。</p>
+  <section class="card">
+    <h2>2. 入力項目を選択</h2>
+    <div class="past-mode-selector" id="pastModeSelector">
+      <button type="button" data-mode="simple">シンプル</button>
+      <button type="button" data-mode="standard">スタンダード</button>
+      <button type="button" data-mode="custom">カスタム</button>
+    </div>
+    <p id="modeDescription" class="section-description"></p>
+  </section>
+
+  <section class="card">
+    <h2>3. ラウンド情報を入力</h2>
     <div class="import-form-grid">
       <label>ラウンド日<input id="roundDate" type="date"></label>
       <label>ゴルフ場名<input id="courseName" type="text" placeholder="例：上総富士ゴルフクラブ"></label>
@@ -46,6 +47,16 @@
       <label>後半コース<input id="backCourse" type="text" placeholder="例：西コース"></label>
       <label>ティー<input id="teeName" type="text" placeholder="例：REGULAR"></label>
       <label>グリーン<input id="greenName" type="text" placeholder="例：A"></label>
+    </div>
+    <div class="quick-entry-box">
+      <h3>9ホール一括入力</h3>
+      <p>数字を区切らず入力できます。例：PAR「434543445」</p>
+      <div class="quick-entry-grid">
+        <label>対象<select id="quickHalf"><option value="front">前半 1～9H</option><option value="back">後半 10～18H</option></select></label>
+        <label>項目<select id="quickField"><option value="par">PAR</option><option value="score">スコア</option><option value="putts">パット</option><option value="ob">OB</option><option value="onePenalty">1ペナ</option><option value="bunker">バンカー</option></select></label>
+        <label class="quick-value-label">連続値<input id="quickValue" inputmode="numeric" placeholder="例：434543445"></label>
+        <button id="applyQuickButton" class="secondary-button" type="button">反映</button>
+      </div>
     </div>
     <div class="import-summary-grid">
       <div><span>PAR</span><strong id="previewPar">-</strong></div>
@@ -55,18 +66,20 @@
     </div>
     <div class="table-scroll">
       <table class="import-hole-table">
-        <thead><tr><th>H</th><th>PAR</th><th>スコア</th><th>パット</th><th>クラブ</th><th>方向</th><th>バンカー</th><th>OB</th><th>1ペナ</th></tr></thead>
+        <thead id="holeTableHead"></thead>
         <tbody id="holeTableBody"></tbody>
       </table>
     </div>
     <div id="courseSaveNotice" class="course-save-notice"></div>
     <label class="checkbox-row"><input id="saveCourseCheck" type="checkbox" checked> 未登録の場合、18ホールのPAR情報をゴルフ場管理にも保存する</label>
+    <div id="importMessage" class="data-message" aria-live="polite"></div>
     <button id="saveImportedRoundButton" class="btn" type="button">💾 ラウンド履歴へ保存</button>
-    <button id="resetImportButton" class="secondary-button data-action-button" type="button">画像を選び直す</button>
+    <button id="resetImportButton" class="secondary-button data-action-button" type="button">入力をリセット</button>
   </section>
 </main>
 <div id="navigation"></div>
 <script src="js/storage.js"></script>
+<script src="js/config.js"></script>
 <script src="js/courseDatabase.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/rakutenImport.js"></script>
