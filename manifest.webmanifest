@@ -1,0 +1,16 @@
+{
+  "name": "ScoreCraft - ゴルフスコア管理",
+  "short_name": "ScoreCraft",
+  "description": "ゴルフのラウンド記録・履歴・分析を端末内で管理するアプリ",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F5F7F5",
+  "theme_color": "#2E7D32",
+  "icons": [
+    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

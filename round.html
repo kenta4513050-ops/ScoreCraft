@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+    <meta name="theme-color" content="#2E7D32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ScoreCraft">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <title>ラウンド入力 | ScoreCraft</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+</head>
+
+<body>
+
+
+    <!-- ========================================
+         ヘッダー
+    ========================================= -->
+
+    <header class="app-header">
+
+        <h1>ScoreCraft</h1>
+
+        <p>ラウンド入力</p>
+
+    </header>
+
+
+    <!-- ========================================
+         メインコンテンツ
+    ========================================= -->
+
+    <main class="page-container">
+
+
+        <!-- ====================================
+             ラウンド基本情報
+        ===================================== -->
+
+        <section class="card round-info-card">
+
+            <h2>ラウンド情報</h2>
+
+
+            <!-- ゴルフ場検索 -->
+
+            <div class="form-group">
+
+                <label for="courseSearch">
+                    ゴルフ場検索
+                </label>
+
+                <input
+                    id="courseSearch"
+                    type="search"
+                    placeholder="ゴルフ場名・都道府県・コース名で検索"
+                    autocomplete="off"
+                >
+
+                <div
+                    id="courseSearchResults"
+                    class="course-search-results"
+                    hidden
+                ></div>
+
+            </div>
+
+
+            <!-- 選択中のゴルフ場 -->
+
+            <div
+                id="selectedCourseArea"
+                class="selected-course-area"
+                hidden
+            >
+
+                <p class="selected-course-label">
+                    選択中のゴルフ場
+                </p>
+
+                <div class="selected-course-content">
+
+                    <div>
+
+                        <strong id="selectedCourseName">
+                            未選択
+                        </strong>
+
+                        <p id="selectedCourseDetails"></p>
+
+                    </div>
+
+                    <button
+                        id="clearCourseButton"
+                        type="button"
+                        class="secondary-button"
+                    >
+                        選び直す
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- round.jsとの互換用 -->
+
+            <input
+                id="courseName"
+                type="hidden"
+                value=""
+            >
+
+            <input
+                id="courseId"
+                type="hidden"
+                value=""
+            >
+
+
+            <!-- 日付 -->
+
+            <div class="form-group">
+
+                <label for="roundDate">
+                    ラウンド日
+                </label>
+
+                <input
+                    id="roundDate"
+                    type="date"
+                >
+
+            </div>
+
+
+            <!-- PAR情報 -->
+
+            <div
+                id="courseParSummary"
+                class="course-par-summary"
+                hidden
+            >
+
+                <div class="course-par-item">
+
+                    <span>OUT</span>
+
+                    <strong id="courseOutPar">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="course-par-item">
+
+                    <span>IN</span>
+
+                    <strong id="courseInPar">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="course-par-item">
+
+                    <span>TOTAL</span>
+
+                    <strong id="courseTotalPar">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================
+             編集時の入力モード切替
+        ===================================== -->
+
+        <section id="editModeSelector" class="card edit-mode-selector" hidden>
+            <div class="edit-mode-heading">
+                <div>
+                    <h2>入力モード</h2>
+                    <p>このラウンドの編集項目を切り替えられます</p>
+                </div>
+            </div>
+            <div class="edit-mode-options" role="group" aria-label="入力モード">
+                <button id="editModeSimple" type="button" class="edit-mode-option" data-mode="simple">
+                    <span class="edit-mode-icon">▦</span>
+                    <strong>シンプル</strong>
+                    <small>スコア・パットのみ</small>
+                </button>
+                <button id="editModeStandard" type="button" class="edit-mode-option" data-mode="standard">
+                    <span class="edit-mode-icon">☰</span>
+                    <strong>スタンダード</strong>
+                    <small>おすすめの基本項目</small>
+                </button>
+                <button id="editModeCustom" type="button" class="edit-mode-option" data-mode="custom">
+                    <span class="edit-mode-icon">☷</span>
+                    <strong>カスタム</strong>
+                    <small>設定した詳細項目</small>
+                </button>
+            </div>
+        </section>
+
+
+        <!-- ====================================
+             ホール入力
+        ===================================== -->
+
+        <section class="card hole-card">
+
+
+            <!-- ホール見出し -->
+
+            <div class="hole-header">
+
+                <div>
+
+                    <h2 id="holeTitle">
+                        Hole 1 / 18
+                    </h2>
+
+                    <p id="holePar">
+                        Par -
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- 入力項目 -->
+
+            <div id="inputArea"></div>
+
+
+            <!-- 前後ホールボタン -->
+
+            <div class="hole-navigation">
+
+                <button
+                    id="prevHole"
+                    type="button"
+                    class="hole-navigation-button"
+                >
+                    ◀ 前のホール
+                </button>
+
+                <button
+                    id="nextHole"
+                    type="button"
+                    class="hole-navigation-button"
+                >
+                    次のホール ▶
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================
+             保存
+        ===================================== -->
+
+        <section class="save-section">
+
+            <div class="round-save-actions">
+                <button
+                    id="saveButton"
+                    type="button"
+                    class="primary-button"
+                >
+                    ラウンドを保存
+                </button>
+
+                <button
+                    id="cancelEditButton"
+                    type="button"
+                    class="secondary-button"
+                    hidden
+                >
+                    編集をキャンセル
+                </button>
+            </div>
+
+            <p
+                id="message"
+                class="message"
+                aria-live="polite"
+            ></p>
+
+        </section>
+
+
+    </main>
+
+
+    <!-- ========================================
+         下部ナビゲーション
+    ========================================= -->
+
+    <nav
+        id="navigation"
+        class="bottom-navigation"
+    ></nav>
+
+
+    <!-- ========================================
+         JavaScript
+    ========================================= -->
+
+    <script src="js/app.js"></script>
+
+    <script src="js/config.js"></script>
+
+    <script src="js/storage.js"></script>
+
+    <script src="js/navigation.js"></script>
+
+
+    <script src="js/courseDatabase.js"></script>
+
+    <script src="js/round.js"></script>
+
+
+</body>
+
+</html>

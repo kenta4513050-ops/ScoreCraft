@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2E7D32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ScoreCraft">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <title>ScoreCraft - 設定</title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+<body>
+
+<header>
+
+    <h1>⚙️ 設定</h1>
+
+    <p>ScoreCraftを自分好みにカスタマイズ</p>
+
+</header>
+
+<main>
+
+    <h2 class="settings-group-title">ラウンド入力設定</h2>
+
+    <!-- 入力モード -->
+
+    <section class="card">
+
+        <h2>入力モード</h2>
+
+        <select id="inputMode">
+
+            <option value="simple">
+                シンプル
+            </option>
+
+            <option value="standard">
+                スタンダード
+            </option>
+
+            <option value="custom">
+                カスタム
+            </option>
+
+        </select>
+
+        <p class="description">
+
+            シンプル：スコアのみ入力<br>
+            スタンダード：おすすめ構成<br>
+            カスタム：入力項目を自由に選択
+
+        </p>
+
+    </section>
+
+    <!-- 距離単位 -->
+
+    <section class="card">
+
+        <h2>グリーン距離単位</h2>
+
+        <select id="distanceUnit">
+
+            <option value="step">
+
+                歩数
+
+            </option>
+
+            <option value="yard">
+
+                ヤード
+
+            </option>
+
+        </select>
+
+    </section>
+
+    <!-- カスタム項目 -->
+
+    <section class="card">
+
+        <h2>入力項目（カスタム）</h2>
+
+        <div id="customInputs">
+
+            <!-- settings.js が生成 -->
+
+        </div>
+
+    </section>
+
+    <h2 class="settings-group-title">登録データ</h2>
+
+    <!-- マイクラブ -->
+
+    <section class="card">
+
+        <h2>マイクラブ</h2>
+
+        <button
+            class="btn"
+            onclick="location.href='myclubs.html'">
+
+            🏌️ マイクラブを編集
+
+        </button>
+
+    </section>
+
+
+    <!-- ゴルフ場管理 -->
+    <section class="card">
+        <h2>ゴルフ場管理</h2>
+        <p class="section-description">ゴルフ場名と18ホールのPARを登録・編集できます。</p>
+        <button class="btn" type="button" onclick="location.href='course-management.html'">
+            ⛳ ゴルフ場を管理
+        </button>
+    </section>
+
+    <h2 class="settings-group-title">アプリ・データ</h2>
+
+    <!-- アプリとして使用 -->
+
+    <section class="card">
+        <div class="section-heading">
+            <div>
+                <h2>スマホアプリとして使用</h2>
+                <p class="section-description">ホーム画面へ追加すると、ScoreCraftをアプリのように起動できます。</p>
+            </div>
+        </div>
+
+        <div id="installStatus" class="install-status">利用環境を確認中...</div>
+
+        <button id="installAppButton" class="btn" type="button" hidden>
+            📱 ScoreCraftをインストール
+        </button>
+
+        <div id="installInstructions" class="install-instructions" hidden></div>
+    </section>
+
+    <!-- データ管理 -->
+
+    <section class="card">
+
+        <div class="section-heading">
+            <div>
+                <h2>データ管理</h2>
+                <p class="section-description">ラウンド・設定・マイクラブをバックアップできます。</p>
+            </div>
+        </div>
+
+        <div id="dataSummary" class="data-summary-grid"></div>
+
+        <div class="data-action-list">
+            <button id="exportBackupButton" class="btn" type="button">
+                📦 バックアップを保存
+            </button>
+
+            <button id="importBackupButton" class="secondary-button data-action-button" type="button">
+                📥 バックアップから復元
+            </button>
+
+            <button id="exportCsvButton" class="secondary-button data-action-button" type="button">
+                📄 ラウンド履歴をCSV出力
+            </button>
+
+            <button id="deleteAllDataButton" class="danger-button" type="button">
+                🗑️ すべてのデータを削除
+            </button>
+        </div>
+
+        <input id="backupFileInput" type="file" accept="application/json,.json" hidden>
+
+        <p class="data-note">
+            バックアップファイルは、この端末以外にも保存しておくと安心です。復元すると現在のデータは上書きされます。
+        </p>
+
+        <div id="dataMessageArea" class="data-message" aria-live="polite"></div>
+
+    </section>
+
+        <!-- 保存 -->
+
+    <section class="card">
+
+        <button
+            id="saveButton"
+            class="btn">
+
+            💾 設定を保存
+
+        </button>
+
+        <div id="messageArea"></div>
+
+    </section>
+
+</main>
+
+<div id="navigation"></div>
+
+<script src="js/app.js"></script>
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/dataManagement.js"></script>
+
+</body>
+
+</html>

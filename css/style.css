@@ -1,0 +1,1279 @@
+/* ==========================================
+   ScoreCraft Ver2
+   style.css
+========================================== */
+
+/* ===============================
+   リセット
+================================ */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+/* ===============================
+   共通
+================================ */
+
+:root{
+
+    --primary:#2E7D32;
+    --primary-light:#43A047;
+
+    --background:#F5F7F5;
+
+    --card:#FFFFFF;
+
+    --text:#222222;
+
+    --subtext:#777777;
+
+    --border:#DDDDDD;
+
+    --danger:#D32F2F;
+
+    --radius:14px;
+
+    --shadow:0 3px 12px rgba(0,0,0,.08);
+
+}
+
+body{
+
+    font-family:
+        "Yu Gothic UI",
+        "Hiragino Sans",
+        sans-serif;
+
+    background:var(--background);
+
+    color:var(--text);
+
+    max-width:480px;
+
+    margin:auto;
+
+    min-height:100vh;
+
+    padding-bottom:90px;
+
+}
+
+/* ===============================
+   Header
+================================ */
+
+header{
+
+    background:var(--primary);
+
+    color:white;
+
+    text-align:center;
+
+    padding:18px;
+
+    box-shadow:var(--shadow);
+
+}
+
+header h1{
+
+    font-size:28px;
+
+}
+
+header p{
+
+    margin-top:6px;
+
+    font-size:13px;
+
+    opacity:.9;
+
+}
+
+/* ===============================
+   Main
+================================ */
+
+main{
+
+    padding:16px;
+
+}
+
+/* ===============================
+   Card
+================================ */
+
+.card{
+
+    background:var(--card);
+
+    border-radius:var(--radius);
+
+    padding:16px;
+
+    margin-bottom:16px;
+
+    box-shadow:var(--shadow);
+
+}
+
+.card h2{
+
+    margin-bottom:12px;
+
+    color:var(--primary);
+
+    font-size:20px;
+
+}
+
+/* ===============================
+   Button
+================================ */
+
+.btn{
+
+    width:100%;
+
+    height:48px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:var(--primary);
+
+    color:white;
+
+    font-size:16px;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.btn:hover{
+
+    background:var(--primary-light);
+
+}
+
+/* ===============================
+   Input
+================================ */
+
+input,
+select,
+textarea{
+
+    width:100%;
+
+    margin-top:8px;
+
+    margin-bottom:14px;
+
+    padding:12px;
+
+    border:1px solid var(--border);
+
+    border-radius:10px;
+
+    font-size:16px;
+
+    background:white;
+
+}
+
+textarea{
+
+    resize:vertical;
+
+}
+
+/* ===============================
+   Table
+================================ */
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+th{
+
+    background:var(--primary);
+
+    color:white;
+
+}
+
+th,
+td{
+
+    border:1px solid var(--border);
+
+    padding:10px;
+
+    text-align:center;
+
+}
+
+/* ===============================
+   Navigation
+================================ */
+
+.bottom-nav{
+
+    position:fixed;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    bottom:0;
+
+    width:100%;
+
+    max-width:480px;
+
+    height:70px;
+
+    background:white;
+
+    display:flex;
+
+    justify-content:space-around;
+
+    align-items:center;
+
+    border-top:1px solid var(--border);
+
+    box-shadow:0 -2px 8px rgba(0,0,0,.08);
+
+    z-index:1000;
+
+}
+
+.nav-item{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    text-decoration:none;
+
+    color:#888;
+
+    font-size:12px;
+
+}
+
+.nav-icon{
+
+    font-size:24px;
+
+    margin-bottom:4px;
+
+}
+
+.active{
+
+    color:var(--primary);
+
+    font-weight:bold;
+
+}
+
+/* ===============================
+   Message
+================================ */
+
+#messageArea{
+
+    margin-top:12px;
+
+    text-align:center;
+
+    font-weight:bold;
+
+}
+
+/* ===============================
+   Utility
+================================ */
+
+.hidden{
+
+    display:none;
+
+}
+
+.center{
+
+    text-align:center;
+
+}
+
+.mt16{
+
+    margin-top:16px;
+
+}
+
+.mb16{
+
+    margin-bottom:16px;
+
+}
+
+/* ===============================
+   Settings
+================================ */
+
+.setting-item{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    margin-bottom:12px;
+
+}
+
+.setting-item input{
+
+    width:20px;
+
+    height:20px;
+
+    margin:0;
+
+}
+
+.setting-item span{
+
+    font-size:16px;
+
+}
+
+/* ===============================
+   My Clubs
+================================ */
+
+.club-item{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    margin-bottom:12px;
+
+    padding:8px 0;
+
+}
+
+.club-item input{
+
+    width:20px;
+
+    height:20px;
+
+    margin:0;
+
+}
+
+.club-item span{
+
+    font-size:16px;
+
+}
+
+/* ===============================
+   Club Category
+=============================== */
+
+.club-category{
+
+    margin-top:24px;
+
+    margin-bottom:10px;
+
+    padding-bottom:6px;
+
+    border-bottom:2px solid #e5e7eb;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+}
+/* ===============================
+   Home Dashboard
+================================ */
+
+.welcome-card p {
+    color: var(--subtext);
+    line-height: 1.7;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dashboard-stat {
+    min-height: 105px;
+    padding: 14px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fafcfa;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
+.dashboard-stat-label {
+    color: var(--subtext);
+    font-size: 13px;
+}
+
+.dashboard-stat-value {
+    margin-top: 8px;
+    color: var(--primary);
+    font-size: 30px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.dashboard-stat-value small {
+    margin-left: 3px;
+    font-size: 13px;
+    color: var(--subtext);
+}
+
+.empty-state {
+    padding: 22px 8px;
+    text-align: center;
+    color: var(--subtext);
+    line-height: 1.8;
+}
+
+.empty-state.compact {
+    padding: 10px 4px;
+}
+
+.recent-round-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.recent-round-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.recent-round-item:first-child {
+    padding-top: 2px;
+}
+
+.recent-round-item:last-child {
+    padding-bottom: 2px;
+    border-bottom: none;
+}
+
+.recent-round-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.recent-round-course {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+}
+
+.recent-round-meta {
+    margin-top: 5px;
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.recent-round-score-area {
+    min-width: 62px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.recent-round-score-label {
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.recent-round-score {
+    margin-top: 2px;
+    color: var(--primary);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.recent-round-relative {
+    margin-top: 4px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    background: #edf6ee;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* ===============================
+   Round History
+================================ */
+
+.section-description {
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 13px;
+}
+
+.history-count {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: #edf6ee;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.history-filter-area {
+    margin: 18px 0 10px;
+}
+
+.history-filter-area label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.history-item {
+    width: 100%;
+    padding: 15px 2px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item:hover {
+    background: #fafcfa;
+}
+
+.history-item-main {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.history-item-date,
+.history-item-detail {
+    color: var(--subtext);
+    font-size: 12px;
+}
+
+.history-item-course {
+    margin: 4px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+}
+
+.history-item-score-area {
+    min-width: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.history-item-score {
+    color: var(--primary);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.history-item-relative {
+    margin-top: 4px;
+    color: var(--subtext);
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.history-item-arrow {
+    color: var(--subtext);
+    font-size: 28px;
+    font-weight: normal;
+}
+
+.compact-button {
+    width: auto;
+    margin: 0;
+    padding: 7px 12px;
+}
+
+.round-detail-summary {
+    margin-top: 8px;
+}
+
+.round-detail-heading {
+    margin-bottom: 16px;
+}
+
+.round-detail-course {
+    display: block;
+    font-size: 18px;
+}
+
+.round-detail-meta {
+    margin-top: 5px;
+    color: var(--subtext);
+    font-size: 13px;
+}
+
+.round-detail-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.round-detail-stat {
+    padding: 10px 4px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fafcfa;
+    text-align: center;
+}
+
+.round-detail-stat span {
+    display: block;
+    color: var(--subtext);
+    font-size: 10px;
+}
+
+.round-detail-stat strong {
+    display: block;
+    margin-top: 5px;
+    color: var(--primary);
+    font-size: 21px;
+}
+
+.hole-table-wrapper {
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+.hole-score-table {
+    width: 100%;
+    min-width: 420px;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+.hole-score-table th,
+.hole-score-table td {
+    padding: 9px 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.hole-score-table th {
+    color: var(--subtext);
+    font-size: 11px;
+}
+
+.hole-score-table td:nth-child(3) {
+    font-weight: bold;
+}
+
+.score-eagle,
+.score-birdie {
+    color: #c62828;
+}
+
+.score-par {
+    color: var(--primary);
+}
+
+.score-bogey,
+.score-double-or-more {
+    color: #1565c0;
+}
+
+.danger-button {
+    width: 100%;
+    margin-top: 8px;
+    padding: 13px;
+    border: 1px solid #d32f2f;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #d32f2f;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+@media (max-width: 420px) {
+    .round-detail-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.recent-round-item[role="link"] {
+    cursor: pointer;
+}
+
+.recent-round-item[role="link"]:hover {
+    background: #fafcfa;
+}
+
+/* ==========================================
+   Step7 分析画面
+========================================== */
+
+.analysis-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.analysis-stat-card {
+    min-height: 92px;
+    padding: 14px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fafcfa;
+    text-align: center;
+}
+
+.analysis-stat-card span {
+    display: block;
+    color: var(--subtext);
+    font-size: 12px;
+}
+
+.analysis-stat-card strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--primary);
+    font-size: 27px;
+    line-height: 1.15;
+}
+
+.score-chart-area {
+    width: 100%;
+    min-height: 230px;
+    overflow: hidden;
+}
+
+#scoreChart {
+    display: block;
+    max-width: 100%;
+}
+
+.analysis-recent-list,
+.club-analysis-list {
+    display: grid;
+    gap: 9px;
+}
+
+.analysis-recent-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 12px 10px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: #ffffff;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.analysis-recent-item:hover {
+    background: #fafcfa;
+}
+
+.analysis-recent-date {
+    color: var(--subtext);
+    font-size: 11px;
+}
+
+.analysis-recent-course {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.analysis-recent-item > strong {
+    color: var(--primary);
+    font-size: 22px;
+}
+
+.direction-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.direction-card {
+    padding: 14px 4px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fafcfa;
+    text-align: center;
+}
+
+.direction-card span,
+.direction-card small {
+    display: block;
+    color: var(--subtext);
+    font-size: 11px;
+}
+
+.direction-card strong {
+    display: block;
+    margin: 6px 0 4px;
+    color: var(--primary);
+    font-size: 24px;
+}
+
+.club-analysis-item {
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: #ffffff;
+}
+
+.club-analysis-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.club-analysis-heading strong {
+    font-size: 14px;
+}
+
+.club-analysis-heading span {
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.club-analysis-heading small {
+    color: var(--subtext);
+    font-weight: normal;
+}
+
+.analysis-progress {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e7eee7;
+}
+
+.analysis-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-light);
+}
+
+@media (min-width: 421px) {
+    .analysis-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ============================================
+   Step8 データ管理
+============================================ */
+
+.data-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.data-summary-item {
+    min-width: 0;
+    padding: 12px 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fafcfa;
+    text-align: center;
+}
+
+.data-summary-item span,
+.data-summary-item small {
+    display: block;
+    color: var(--subtext);
+    font-size: 11px;
+}
+
+.data-summary-item strong {
+    display: inline-block;
+    margin: 6px 2px 2px;
+    color: var(--primary);
+    font-size: 22px;
+    line-height: 1.1;
+    word-break: break-word;
+}
+
+.data-action-list {
+    display: grid;
+    gap: 10px;
+}
+
+.data-action-list button {
+    width: 100%;
+}
+
+.data-action-button {
+    min-height: 46px;
+    font-weight: 700;
+}
+
+.data-note {
+    margin: 14px 0 0;
+    color: var(--subtext);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.data-message {
+    min-height: 24px;
+    margin-top: 10px;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.data-message.error {
+    color: #c62828;
+}
+
+
+/* ============================================
+   Step9: ラウンド編集
+============================================ */
+.round-detail-actions,
+.round-save-actions {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.round-detail-actions .primary-button,
+.round-detail-actions .danger-button,
+.round-save-actions .primary-button,
+.round-save-actions .secondary-button {
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .round-detail-actions,
+    .round-save-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ============================================
+   Step10: 最終仕上げ・PWA対応
+============================================ */
+
+html {
+    background: var(--background);
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+}
+
+button,
+input,
+select,
+textarea,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.btn,
+.primary-button,
+.secondary-button,
+.danger-button {
+    touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+    font-size: 16px;
+}
+
+.bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.install-status {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fafcfa;
+    color: var(--subtext);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.install-instructions {
+    margin-top: 12px;
+    padding: 12px;
+    border-left: 4px solid var(--primary-light);
+    border-radius: 8px;
+    background: #f1f8f2;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+@media (display-mode: standalone) {
+    header {
+        padding-top: calc(18px + env(safe-area-inset-top));
+    }
+}
+
+@media (min-width: 760px) {
+    body {
+        max-width: 720px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+.course-manager-list{display:grid;gap:10px}.course-manager-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:12px;background:#fafcfa}.course-manager-item div:first-child{display:grid;gap:3px}.course-manager-item small,.course-manager-item span{color:var(--subtext);font-size:13px}.course-manager-actions{display:flex;gap:6px;align-items:center}.mini-button{padding:8px 10px;border:1px solid var(--primary);border-radius:8px;background:white;color:var(--primary);font-weight:700}.danger-mini{border-color:#c62828;color:#c62828}.built-in-label{padding:5px 8px;border-radius:999px;background:#e8f5e9;color:var(--primary)!important}.par-toolbar,.course-form-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.par-input-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.par-input-item{display:grid;gap:4px;text-align:center;font-size:12px}.par-input-item select{padding:9px 4px}.par-total-box{display:flex;justify-content:space-around;margin:14px 0;padding:12px;border-radius:10px;background:#f1f8f2}.par-total-box span{display:grid;text-align:center;gap:3px}.course-form-actions .btn{flex:1}@media(max-width:520px){.par-input-grid{grid-template-columns:repeat(3,1fr)}.course-manager-item{align-items:flex-start}.course-manager-actions{flex-direction:column}}
+
+
+/* ゴルフ場未登録時・設定グループ */
+.settings-group-title {
+    max-width: 840px;
+    margin: 28px auto 10px;
+    padding: 0 4px;
+    color: #2e7d32;
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+}
+.course-empty-state {
+    padding: 30px 18px;
+    text-align: center;
+    border: 2px dashed #c8dfca;
+    border-radius: 16px;
+    background: #f8fcf8;
+}
+.course-empty-icon {
+    margin-bottom: 8px;
+    font-size: 2.5rem;
+}
+.course-empty-state h3 {
+    margin: 0 0 8px;
+    color: #236b28;
+}
+.course-empty-state p {
+    margin: 0 auto 18px;
+    max-width: 420px;
+    color: #607064;
+    line-height: 1.7;
+}
+.course-empty-button {
+    width: min(100%, 360px);
+}
+
+
+/* ============================================
+   ゴルフ場管理画面：共通下部ナビ対応
+============================================ */
+#navigation {
+    position: relative;
+    z-index: 1000;
+}
+
+.course-form-actions {
+    margin-bottom: 8px;
+}
+
+@media (max-height: 560px) {
+    /* ソフトキーボード表示中も内容を操作しやすくする */
+    body.keyboard-visible .bottom-nav {
+        display: none;
+    }
+
+    body.keyboard-visible {
+        padding-bottom: 24px;
+    }
+}
+
+
+/* ============================================
+   Score edit UI refresh
+============================================ */
+.hole-card { padding: 20px; }
+.hole-card .form-group { margin-bottom: 18px; }
+.hole-card .form-group > label {
+    display:block; margin-bottom:8px; font-weight:700; color:#17221a;
+}
+.direction-buttons {
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;
+}
+.direction-button {
+    min-height:48px; padding:10px 8px; border:1px solid #9bc8a2;
+    border-radius:10px; background:#fff; color:var(--primary);
+    font-size:14px; font-weight:700; cursor:pointer;
+}
+.direction-button.selected {
+    background:#eaf5ec; border-color:var(--primary);
+    box-shadow:inset 0 0 0 1px var(--primary);
+}
+.penalty-area { display:grid; gap:12px; }
+.penalty-area .form-group {
+    display:grid; grid-template-columns:minmax(100px,1fr) auto; align-items:center;
+    gap:14px; margin:0;
+}
+.penalty-area .form-group > label { margin:0; }
+.counter-control {
+    display:grid; grid-template-columns:44px 60px 44px; min-height:44px;
+    overflow:hidden; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+.counter-control button {
+    border:0; background:#f3f8f4; color:var(--primary); font-size:22px; cursor:pointer;
+}
+.counter-control span {
+    display:grid; place-items:center; border-left:1px solid var(--border);
+    border-right:1px solid var(--border); font-size:18px;
+}
+.hole-progress {
+    display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:8px;
+    margin-top:20px;
+}
+.hole-progress-button {
+    aspect-ratio:1; min-width:0; border:1px solid #c7dbc9; border-radius:50%;
+    background:#fff; color:#174c25; font-weight:700; cursor:pointer;
+}
+.hole-progress-button.current {
+    background:var(--primary); border-color:var(--primary); color:#fff;
+    box-shadow:0 4px 10px rgba(46,125,50,.22);
+}
+.hole-progress-button.completed:not(.current) { background:#edf6ee; }
+.hole-navigation { display:flex; justify-content:space-between; gap:14px; margin-top:22px; }
+.hole-navigation-button {
+    min-height:48px; padding:0 18px; border:1px solid var(--primary); border-radius:10px;
+    background:#fff; color:var(--primary); font-weight:700; cursor:pointer;
+}
+.hole-navigation-button:last-child { background:var(--primary); color:#fff; }
+.hole-navigation-button:disabled { opacity:.4; cursor:not-allowed; }
+.round-save-actions { grid-template-columns:1fr 1fr; }
+.round-save-actions .primary-button,
+.round-save-actions .secondary-button {
+    min-height:52px; border-radius:10px; font-size:16px; font-weight:800;
+}
+.round-save-actions .primary-button { background:var(--primary); color:#fff; border:1px solid var(--primary); }
+.round-save-actions .secondary-button { background:#fff; color:#c62828; border:1px solid #ef7777; }
+.edit-mode-selector h2 { margin-bottom:4px; }
+.edit-mode-heading p { color:var(--subtext); font-size:13px; }
+.edit-mode-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:16px; }
+.edit-mode-option {
+    position:relative; display:grid; justify-items:center; gap:6px; min-height:112px;
+    padding:15px 10px; border:1px solid var(--border); border-radius:12px;
+    background:#fff; color:var(--text); cursor:pointer;
+}
+.edit-mode-option.selected { border-color:var(--primary); background:#f5fbf6; box-shadow:inset 0 0 0 1px var(--primary); }
+.edit-mode-option.selected::after {
+    content:'✓'; position:absolute; top:8px; right:9px; display:grid; place-items:center;
+    width:20px; height:20px; border-radius:50%; background:var(--primary); color:#fff; font-size:12px;
+}
+.edit-mode-icon { color:var(--primary); font-size:27px; line-height:1; }
+.edit-mode-option small { color:var(--subtext); font-size:11px; }
+@media(max-width:520px){
+    .edit-mode-options{grid-template-columns:1fr;}
+    .edit-mode-option{min-height:88px;}
+    .direction-buttons{grid-template-columns:1fr;}
+    .hole-progress{grid-template-columns:repeat(6,minmax(0,1fr));}
+    .round-save-actions{grid-template-columns:1fr;}
+    .hole-navigation-button{flex:1;padding:0 8px;}
+}
