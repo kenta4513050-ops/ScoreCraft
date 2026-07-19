@@ -7,19 +7,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <title>ScoreCraft - 楽天スコア画像取込</title>
+  <title>ScoreCraft - 楽天スコア画像取込 Ver1.2.1</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <header class="app-header">
   <h1>📷 楽天スコア画像取込</h1>
-  <p>横長のスコアカード画像を1～2枚選択</p>
+  <p>楽天スコアカード専用解析・画像を1～2枚選択</p>
 </header>
 <main class="rakuten-import-page">
   <section class="card">
     <h2>1. スクリーンショットを選択</h2>
-    <p class="section-description">楽天ゴルフスコア管理アプリの「スコアカード」画面を選んでください。左右に分かれる場合は同じラウンドの画像を2枚選択します。</p>
+    <p class="section-description">楽天ゴルフスコア管理アプリの「スコアカード」画面を横向きで選んでください。表の行位置を固定レイアウトとして判定します。左右に分かれる場合は、同じラウンドの画像を2枚選択します。</p>
     <label class="image-picker" for="rakutenImages">
       <span class="image-picker-icon">🖼️</span>
       <strong>写真ライブラリから選択</strong>
@@ -28,7 +28,7 @@
     <input id="rakutenImages" type="file" accept="image/*" multiple hidden>
     <div id="imagePreviewList" class="import-image-preview-list"></div>
     <button id="analyzeButton" class="btn" type="button" disabled>🔍 画像を自動解析</button>
-    <p class="data-note">画像解析時のみインターネット接続が必要です。画像自体は外部サーバーへ保存されません。</p>
+    <p class="data-note">画像解析時のみインターネット接続が必要です。読み取り後は、日付・コース名・各ホールのPAR、スコア、パット、方向、クラブ、バンカー、OB、1ペナを必ず確認してください。</p>
     <div id="ocrProgress" class="ocr-progress" hidden>
       <div class="ocr-progress-track"><div id="ocrProgressBar" class="ocr-progress-bar"></div></div>
       <p id="ocrProgressText">準備中...</p>
