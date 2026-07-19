@@ -1,6 +1,6 @@
 "use strict";
 
-/* ScoreCraft Ver1.2.3
+/* ScoreCraft Ver1.2.4
  * 楽天ゴルフ「スコアカード」専用レイアウト解析
  * 画面内の表罫線と行位置を検出し、1～2枚の画像を統合する。
  */
@@ -221,7 +221,7 @@ function detectRakutenGeometry(img) {
   }
   if (xMax <= xMin) return null;
 
-  const boundaries = detectVerticalBoundaries(ctx, midY, xMin, xMax);
+  const boundaries = detectVerticalBoundaries(ctx, headerTop, headerBottom, xMin, xMax);
   return {
     width: W,
     height: H,
@@ -234,15 +234,24 @@ function detectRakutenGeometry(img) {
   };
 }
 
-function detectVerticalBoundaries(ctx, y, xMin, xMax) {
+function detectVerticalBoundaries(ctx, yTop, yBottom, xMin, xMax) {
+  // ヘッダー中央1行だけを見ると、白いホール番号を罫線と誤認する。
+  // ヘッダーの高さ全体を縦に調べ、ほぼ全域が白い場所だけを罫線とする。
   const candidates = [];
+  const height = Math.max(1, yBottom - yTop);
   for (let x = xMin; x <= xMax; x += 1) {
-    const p = ctx.getImageData(x, y, 1, 1).data;
-    const nearWhite = p[0] > 215 && p[1] > 215 && p[2] > 215;
-    if (nearWhite) candidates.push(x);
+    let whiteCount = 0;
+    for (let y = yTop; y < yBottom; y += 2) {
+      const p = ctx.getImageData(x, y, 1, 1).data;
+      if (p[0] > 205 && p[1] > 205 && p[2] > 205) whiteCount += 1;
+    }
+    const samples = Math.ceil(height / 2);
+    if (whiteCount >= samples * 0.72) candidates.push(x);
   }
   const runs = groupConsecutive(candidates);
-  const centers = runs.filter(run => run.length <= 8).map(run => Math.round((run[0] + run[run.length - 1]) / 2));
+  const centers = runs
+    .filter(run => run.length <= 12)
+    .map(run => Math.round((run[0] + run[run.length - 1]) / 2));
   return uniqueByDistance([xMin, ...centers, xMax + 1].sort((a, b) => a - b), 3);
 }
 
@@ -316,6 +325,12 @@ async function detectHoleCells(img, geometry) {
     rawCells.push({ x0, x1, center: (x0 + x1) / 2, width });
   }
 
+  // 罫線だけでホール列を特定する。OCRに依存しないため、iPhoneでも安定する。
+  // 検出数が少ない場合は楽天の固定比率から列を復元する。
+  if (rawCells.length < 5) {
+    rawCells.push(...buildLayoutCellsFromRatios(geometry));
+  }
+
   // 行全体OCRの結果をセルへ割り当てる。
   for (const cell of rawCells) {
     const match = words
@@ -357,7 +372,13 @@ async function detectHoleCells(img, geometry) {
   }
 
   cells.sort((a, b) => a.center - b.center);
+
+  // 数字OCRが全滅しても、列の並びから番号を復元する。
+  if (cells.length < 5) {
+    cells = rawCells.sort((a, b) => a.center - b.center);
+  }
   if (!cells.length) return [];
+  assignHoleLabelsByLayout(cells, geometry);
 
   // 横スクロール画像では「10～18→1～9」や「14～18→1～9」のように並ぶ。
   // 数字が小さく戻った位置を境界として、実ホール番号をそのまま採用する。
@@ -377,6 +398,51 @@ async function detectHoleCells(img, geometry) {
     if (!current || cell.width > current.width) byHole.set(cell.roundHole, cell);
   }
   return [...byHole.values()].sort((a, b) => a.center - b.center);
+}
+
+function buildLayoutCellsFromRatios(geometry) {
+  const tableWidth = geometry.xMax - geometry.xMin;
+  const labelWidth = tableWidth * 0.135;
+  const holeWidth = tableWidth * 0.041;
+  const summaryWidth = tableWidth * 0.098;
+  const cells = [];
+  let x = geometry.xMin + labelWidth;
+
+  // 最大18列。途中に前半・後半・合計の幅広列があるため、
+  // 緑色の縦罫線を優先しつつ固定幅で補助する。
+  for (let i = 0; i < 18 && x + holeWidth <= geometry.xMax + 2; i += 1) {
+    cells.push({ x0: x, x1: x + holeWidth, center: x + holeWidth / 2, width: holeWidth });
+    x += holeWidth;
+    if (i === 8) x += summaryWidth;
+  }
+  return cells.filter(cell => cell.center >= geometry.xMin && cell.center <= geometry.xMax);
+}
+
+function assignHoleLabelsByLayout(cells, geometry) {
+  const sorted = cells.sort((a, b) => a.center - b.center);
+  const labelled = sorted.filter(cell => Number.isInteger(cell.label) && cell.label >= 1 && cell.label <= 18);
+  if (labelled.length >= Math.min(5, sorted.length)) return;
+
+  // セル間隔が大きく空く位置を前半/後半の区切りとする。
+  const widths = sorted.map(cell => cell.width).filter(Number.isFinite);
+  const base = widths.length ? widths.sort((a, b) => a - b)[Math.floor(widths.length / 2)] : geometry.width * 0.04;
+  let split = -1;
+  for (let i = 0; i < sorted.length - 1; i += 1) {
+    const gap = sorted[i + 1].x0 - sorted[i].x1;
+    if (gap > base * 1.25) { split = i + 1; break; }
+  }
+
+  const groups = split > 0 ? [sorted.slice(0, split), sorted.slice(split)] : [sorted];
+  if (groups.length === 2) {
+    const left = groups[0], right = groups[1];
+    // 右側が9列なら通常はOUTの1～9。左側はINの末尾、または別コースの1～9。
+    right.forEach((cell, i) => { if (!cell.label) cell.label = i + 1; });
+    const leftStart = left.length === 9 ? 10 : Math.max(10, 19 - left.length);
+    left.forEach((cell, i) => { if (!cell.label) cell.label = leftStart + i; });
+  } else {
+    // 1グループだけの場合は、見えている列数に応じて1から連番。
+    groups[0].forEach((cell, i) => { if (!cell.label) cell.label = i + 1; });
+  }
 }
 
 function prepareHeaderForOcr(sourceCanvas) {
