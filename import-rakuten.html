@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2E7D32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>ScoreCraft - 楽天スコア画像取込</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+<header class="app-header">
+  <h1>📷 楽天スコア画像取込</h1>
+  <p>横長のスコアカード画像を1～2枚選択</p>
+</header>
+<main class="rakuten-import-page">
+  <section class="card">
+    <h2>1. スクリーンショットを選択</h2>
+    <p class="section-description">楽天ゴルフスコア管理アプリの「スコアカード」画面を選んでください。左右に分かれる場合は同じラウンドの画像を2枚選択します。</p>
+    <label class="image-picker" for="rakutenImages">
+      <span class="image-picker-icon">🖼️</span>
+      <strong>写真ライブラリから選択</strong>
+      <span>JPEG・PNG／最大2枚</span>
+    </label>
+    <input id="rakutenImages" type="file" accept="image/*" multiple hidden>
+    <div id="imagePreviewList" class="import-image-preview-list"></div>
+    <button id="analyzeButton" class="btn" type="button" disabled>🔍 画像を自動解析</button>
+    <p class="data-note">画像解析時のみインターネット接続が必要です。画像自体は外部サーバーへ保存されません。</p>
+    <div id="ocrProgress" class="ocr-progress" hidden>
+      <div class="ocr-progress-track"><div id="ocrProgressBar" class="ocr-progress-bar"></div></div>
+      <p id="ocrProgressText">準備中...</p>
+    </div>
+    <div id="importMessage" class="data-message" aria-live="polite"></div>
+  </section>
+
+  <section id="resultSection" class="card" hidden>
+    <h2>2. 読み取り結果を確認</h2>
+    <p class="section-description">誤認識があれば修正してから保存してください。</p>
+    <div class="import-form-grid">
+      <label>ラウンド日<input id="roundDate" type="date"></label>
+      <label>ゴルフ場名<input id="courseName" type="text" placeholder="例：上総富士ゴルフクラブ"></label>
+      <label>前半コース<input id="frontCourse" type="text" placeholder="例：東コース"></label>
+      <label>後半コース<input id="backCourse" type="text" placeholder="例：西コース"></label>
+      <label>ティー<input id="teeName" type="text" placeholder="例：REGULAR"></label>
+      <label>グリーン<input id="greenName" type="text" placeholder="例：A"></label>
+    </div>
+    <div class="import-summary-grid">
+      <div><span>PAR</span><strong id="previewPar">-</strong></div>
+      <div><span>スコア</span><strong id="previewScore">-</strong></div>
+      <div><span>パット</span><strong id="previewPutts">-</strong></div>
+      <div><span>OB</span><strong id="previewOb">-</strong></div>
+    </div>
+    <div class="table-scroll">
+      <table class="import-hole-table">
+        <thead><tr><th>H</th><th>PAR</th><th>スコア</th><th>パット</th><th>クラブ</th><th>方向</th><th>バンカー</th><th>OB</th><th>1ペナ</th></tr></thead>
+        <tbody id="holeTableBody"></tbody>
+      </table>
+    </div>
+    <div id="courseSaveNotice" class="course-save-notice"></div>
+    <label class="checkbox-row"><input id="saveCourseCheck" type="checkbox" checked> 未登録の場合、18ホールのPAR情報をゴルフ場管理にも保存する</label>
+    <button id="saveImportedRoundButton" class="btn" type="button">💾 ラウンド履歴へ保存</button>
+    <button id="resetImportButton" class="secondary-button data-action-button" type="button">画像を選び直す</button>
+  </section>
+</main>
+<div id="bottomNavigation"></div>
+<script src="js/storage.js"></script>
+<script src="js/courseDatabase.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/rakutenImport.js"></script>
+</body>
+</html>

@@ -136,25 +136,6 @@
 
     <h2 class="settings-group-title">アプリ・データ</h2>
 
-    <!-- アプリとして使用 -->
-
-    <section class="card">
-        <div class="section-heading">
-            <div>
-                <h2>スマホアプリとして使用</h2>
-                <p class="section-description">ホーム画面へ追加すると、ScoreCraftをアプリのように起動できます。</p>
-            </div>
-        </div>
-
-        <div id="installStatus" class="install-status">利用環境を確認中...</div>
-
-        <button id="installAppButton" class="btn" type="button" hidden>
-            📱 ScoreCraftをインストール
-        </button>
-
-        <div id="installInstructions" class="install-instructions" hidden></div>
-    </section>
-
     <!-- データ管理 -->
 
     <section class="card">
@@ -181,8 +162,8 @@
                 📄 ラウンド履歴をCSV出力
             </button>
 
-            <button class="secondary-button data-action-button" type="button" onclick="location.href='import-rounds.html'">
-                📥 過去のラウンドをCSV取込
+            <button class="secondary-button data-action-button" type="button" onclick="location.href='import-rakuten.html'">
+                📷 楽天スコア画像から取込
             </button>
 
             <button id="deleteAllDataButton" class="danger-button" type="button">

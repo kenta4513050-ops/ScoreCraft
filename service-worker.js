@@ -1,13 +1,13 @@
 "use strict";
 
-const CACHE_NAME = "scorecraft-v1-1-csv-import";
+const CACHE_NAME = "scorecraft-v1.2.0-rakuten-import";
 const APP_FILES = [
   "./", "./index.html", "./round.html", "./history.html", "./analysis.html",
-  "./myclubs.html", "./settings.html", "./course-management.html", "./import-rounds.html",
+  "./myclubs.html", "./settings.html", "./course-management.html", "./import-rakuten.html",
   "./manifest.webmanifest", "./css/style.css", "./js/app.js", "./js/config.js",
   "./js/storage.js", "./js/navigation.js", "./js/index.js", "./js/courseDatabase.js",
   "./js/round.js", "./js/history.js", "./js/analysis.js", "./js/clubs.js",
-  "./js/settings.js", "./js/dataManagement.js", "./js/courseManagement.js", "./js/csvImport.js",
+  "./js/settings.js", "./js/dataManagement.js", "./js/courseManagement.js", "./js/rakutenImport.js",
   "./icons/icon-192.png", "./icons/icon-512.png"
 ];
 
