@@ -1,6 +1,6 @@
 "use strict";
 
-/* ScoreCraft Ver1.2.2
+/* ScoreCraft Ver1.2.3
  * 楽天ゴルフ「スコアカード」専用レイアウト解析
  * 画面内の表罫線と行位置を検出し、1～2枚の画像を統合する。
  */
@@ -289,56 +289,116 @@ async function recognizeHeaderMeta(img, geometry) {
 }
 
 async function detectHoleCells(img, geometry) {
-  const rowCanvas = cropCanvas(img, geometry.xMin, geometry.headerTop, geometry.xMax - geometry.xMin, geometry.headerHeight, 2);
+  // まず行全体をOCRする。iPhoneでは白文字＋緑背景の数字を
+  // 認識しづらい場合があるため、失敗時は各セルを個別に二値化して読む。
+  const rowCanvas = cropCanvas(img, geometry.xMin, geometry.headerTop, geometry.xMax - geometry.xMin, geometry.headerHeight, 3);
+  const preparedRow = prepareHeaderForOcr(rowCanvas);
   await importState.worker.setParameters({
     tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
     tessedit_char_whitelist: "0123456789"
   });
-  const result = await importState.worker.recognize(rowCanvas);
-  const words = getWords(result.data)
+  const result = await importState.worker.recognize(preparedRow);
+  let words = getWords(result.data)
     .map(word => ({
       text: String(word.text || "").replace(/\D/g, ""),
-      x: geometry.xMin + ((word.bbox.x0 + word.bbox.x1) / 2) / 2,
+      x: geometry.xMin + ((word.bbox.x0 + word.bbox.x1) / 2) / 3,
       confidence: word.confidence || 0
     }))
     .filter(word => /^\d{1,2}$/.test(word.text) && +word.text >= 1 && +word.text <= 18);
 
-  const boundaryCells = [];
+  const rawCells = [];
   for (let index = 0; index < geometry.boundaries.length - 1; index += 1) {
     const x0 = geometry.boundaries[index];
     const x1 = geometry.boundaries[index + 1];
     const width = x1 - x0;
-    if (width < geometry.width * 0.018 || width > geometry.width * 0.13) continue;
-    const center = (x0 + x1) / 2;
-    const match = words
-      .filter(word => word.x >= x0 - 3 && word.x <= x1 + 3)
-      .sort((a, b) => b.confidence - a.confidence)[0];
-    if (match) boundaryCells.push({ x0, x1, center, label: +match.text, width });
+    // 楽天のホール列は画像幅の約2.5～5.5%。ラベル列・前半/後半・合計列は除外。
+    if (width < geometry.width * 0.023 || width > geometry.width * 0.058) continue;
+    rawCells.push({ x0, x1, center: (x0 + x1) / 2, width });
   }
 
-  let cells = boundaryCells;
-  if (cells.length < 5) {
-    cells = words.sort((a, b) => a.x - b.x).map((word, index, array) => {
-      const left = index === 0 ? word.x - geometry.width * 0.018 : (array[index - 1].x + word.x) / 2;
-      const right = index === array.length - 1 ? word.x + geometry.width * 0.018 : (word.x + array[index + 1].x) / 2;
+  // 行全体OCRの結果をセルへ割り当てる。
+  for (const cell of rawCells) {
+    const match = words
+      .filter(word => word.x >= cell.x0 - 5 && word.x <= cell.x1 + 5)
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    if (match) cell.label = +match.text;
+  }
+
+  // 認識できなかったセルだけ、1セルずつ大きく二値化して再OCRする。
+  for (const cell of rawCells.filter(item => !item.label)) {
+    const cellCanvas = cropCanvas(
+      img,
+      cell.x0 + Math.max(1, cell.width * 0.08),
+      geometry.headerTop + Math.max(1, geometry.headerHeight * 0.08),
+      Math.max(4, cell.width * 0.84),
+      Math.max(4, geometry.headerHeight * 0.84),
+      5
+    );
+    const prepared = prepareHeaderForOcr(cellCanvas);
+    await importState.worker.setParameters({
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+      tessedit_char_whitelist: "0123456789"
+    });
+    const cellResult = await importState.worker.recognize(prepared);
+    const value = String(cellResult.data.text || "").replace(/\D/g, "");
+    if (/^\d{1,2}$/.test(value) && +value >= 1 && +value <= 18) cell.label = +value;
+  }
+
+  let cells = rawCells.filter(cell => cell.label);
+
+  // 罫線検出が弱い画像では、OCRされた数字位置から仮セルを作る。
+  if (cells.length < 5 && words.length >= 5) {
+    const sorted = words.sort((a, b) => a.x - b.x);
+    cells = sorted.map((word, index, array) => {
+      const left = index === 0 ? word.x - geometry.width * 0.019 : (array[index - 1].x + word.x) / 2;
+      const right = index === array.length - 1 ? word.x + geometry.width * 0.019 : (word.x + array[index + 1].x) / 2;
       return { x0: left, x1: right, center: word.x, label: +word.text, width: right - left };
     });
   }
 
   cells.sort((a, b) => a.center - b.center);
-  const normalWidth = median(cells.map(cell => cell.width));
-  let segment = 0;
-  let previous = null;
+  if (!cells.length) return [];
+
+  // 横スクロール画像では「10～18→1～9」や「14～18→1～9」のように並ぶ。
+  // 数字が小さく戻った位置を境界として、実ホール番号をそのまま採用する。
+  let previousLabel = null;
   for (const cell of cells) {
-    if (previous && cell.center - previous.center > normalWidth * 1.8) segment += 1;
-    cell.segment = Math.min(segment, 1);
-    cell.roundHole = cell.segment === 0
-      ? (cell.label >= 10 ? cell.label - 9 : cell.label)
-      : (cell.label <= 9 ? cell.label + 9 : cell.label);
-    previous = cell;
+    const label = Number(cell.label);
+    cell.roundHole = label;
+    if (previousLabel !== null && label === previousLabel) cell.duplicateLabel = true;
+    previousLabel = label;
   }
 
-  return cells.filter(cell => cell.roundHole >= 1 && cell.roundHole <= 18);
+  // 同じ番号が重複認識された場合は信頼できる1つだけ残す。
+  const byHole = new Map();
+  for (const cell of cells) {
+    if (cell.roundHole < 1 || cell.roundHole > 18) continue;
+    const current = byHole.get(cell.roundHole);
+    if (!current || cell.width > current.width) byHole.set(cell.roundHole, cell);
+  }
+  return [...byHole.values()].sort((a, b) => a.center - b.center);
+}
+
+function prepareHeaderForOcr(sourceCanvas) {
+  const canvas = document.createElement("canvas");
+  canvas.width = sourceCanvas.width;
+  canvas.height = sourceCanvas.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(sourceCanvas, 0, 0);
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    // 白い文字を黒、緑背景を白へ変換してコントラストを最大化。
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const isWhiteText = r > 150 && g > 150 && b > 150;
+    const value = isWhiteText ? 0 : 255;
+    data[i] = value;
+    data[i + 1] = value;
+    data[i + 2] = value;
+    data[i + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  return canvas;
 }
 
 async function recognizeRow(img, geometry, cells, field, rule) {
@@ -591,7 +651,7 @@ function saveImportedRound() {
     totalPar: sumField("par"),
     teeName: importState.meta.teeName,
     greenName: importState.meta.greenName,
-    importSource: "rakuten-screenshot-v1.2.2",
+    importSource: "rakuten-screenshot-v1.2.3",
     createdAt: now,
     updatedAt: now
   };

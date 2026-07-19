@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "scorecraft-v1.2.2-direction-fix";
+const CACHE_NAME = "scorecraft-v1.2.3-hole-detection-fix";
 const APP_FILES = [
   "./", "./index.html", "./round.html", "./history.html", "./analysis.html",
   "./myclubs.html", "./settings.html", "./course-management.html", "./import-rakuten.html",
