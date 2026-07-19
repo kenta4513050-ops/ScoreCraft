@@ -1,6 +1,6 @@
 "use strict";
 
-/* ScoreCraft Ver1.2.4
+/* ScoreCraft Ver1.2.5
  * 楽天ゴルフ「スコアカード」専用レイアウト解析
  * 画面内の表罫線と行位置を検出し、1～2枚の画像を統合する。
  */
@@ -484,21 +484,55 @@ async function recognizeRow(img, geometry, cells, field, rule) {
   const output = {};
   for (const cell of cells) {
     const candidates = words
-      .filter(word => word.x >= cell.x0 - 4 && word.x <= cell.x1 + 4)
+      .filter(word => word.x >= cell.x0 - 5 && word.x <= cell.x1 + 5)
       .sort((a, b) => b.confidence - a.confidence);
     if (!candidates.length) continue;
     const combined = candidates.map(item => item.text).join("");
-    if (rule.text) {
-      const club = cleanClub(combined);
-      if (club) output[cell.roundHole] = club;
-    } else {
-      const match = combined.match(/\d+/);
-      if (!match) continue;
-      const value = +match[0];
-      if (value >= rule.min && value <= rule.max) output[cell.roundHole] = value;
+    const parsed = parseCellValue(combined, rule);
+    if (parsed !== null) output[cell.roundHole] = parsed;
+  }
+
+  // iPhoneでは行全体OCRが空になることがあるため、未検出セルを個別に再解析する。
+  // セルを大きく拡大し、数字・クラブ名だけに限定することで認識率を上げる。
+  const detectedCount = Object.keys(output).length;
+  if (detectedCount < Math.ceil(cells.length * 0.75)) {
+    for (const cell of cells) {
+      if (output[cell.roundHole] !== undefined) continue;
+      const padX = Math.max(1, (cell.x1 - cell.x0) * 0.08);
+      const padY = Math.max(1, (band.y1 - band.y0) * 0.12);
+      const cellCanvas = cropCanvas(
+        img,
+        cell.x0 + padX,
+        band.y0 + padY,
+        Math.max(3, cell.x1 - cell.x0 - padX * 2),
+        Math.max(3, band.y1 - band.y0 - padY * 2),
+        5
+      );
+      await importState.worker.setParameters({
+        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD,
+        tessedit_char_whitelist: rule.whitelist
+      });
+      const cellResult = await importState.worker.recognize(cellCanvas);
+      const parsed = parseCellValue(cellResult.data.text || "", rule);
+      if (parsed !== null) output[cell.roundHole] = parsed;
     }
   }
   return output;
+}
+
+function parseCellValue(raw, rule) {
+  const text = String(raw || "").trim();
+  if (rule.text) {
+    const club = cleanClub(text);
+    return club || null;
+  }
+  const normalized = text
+    .replace(/[Oo〇○]/g, "0")
+    .replace(/[Il|]/g, "1")
+    .replace(/[^0-9]/g, "");
+  if (!normalized) return null;
+  const value = Number(normalized);
+  return Number.isFinite(value) && value >= rule.min && value <= rule.max ? value : null;
 }
 
 function getRowBand(geometry, field) {
@@ -717,7 +751,7 @@ function saveImportedRound() {
     totalPar: sumField("par"),
     teeName: importState.meta.teeName,
     greenName: importState.meta.greenName,
-    importSource: "rakuten-screenshot-v1.2.3",
+    importSource: "rakuten-screenshot-v1.2.5",
     createdAt: now,
     updatedAt: now
   };
