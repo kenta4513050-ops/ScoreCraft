@@ -1308,3 +1308,23 @@ textarea {
 
 /* Ver1.3.0 過去ラウンド高速入力 */
 .past-mode-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.past-mode-selector button{border:1px solid #b8c9ba;border-radius:12px;background:#f7faf7;padding:12px 6px;font-weight:700;color:#3b4c3d}.past-mode-selector button.active{background:#2e7d32;color:#fff;border-color:#2e7d32}.quick-entry-box{margin:18px 0;padding:14px;border-radius:14px;background:#f3f8f3}.quick-entry-box h3{margin:0 0 4px}.quick-entry-box p{margin:0 0 10px;font-size:13px;color:#647066}.quick-entry-grid{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:8px;align-items:end}.quick-entry-grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700}.quick-entry-grid input,.quick-entry-grid select{min-height:42px}.reference-preview img{cursor:zoom-in;object-fit:contain;background:#111}.reference-preview.expanded{grid-column:1/-1}.reference-preview.expanded img{height:auto;max-height:70vh}.import-hole-table input[type="text"]{min-width:74px}.import-hole-table td:last-child input{min-width:110px}@media(max-width:700px){.quick-entry-grid{grid-template-columns:1fr 1fr}.quick-value-label{grid-column:1/-1}.quick-entry-grid button{grid-column:1/-1}.past-mode-selector button{font-size:13px;padding:11px 3px}}
+
+
+/* Ver1.3.1 過去ラウンド入力改善 */
+.reference-image-sticky.has-images{position:sticky;top:max(0px,env(safe-area-inset-top));z-index:35;padding:8px;margin-left:-4px;margin-right:-4px;background:rgba(248,250,248,.96);border:1px solid #dce7dd;border-radius:14px;box-shadow:0 8px 20px rgba(28,72,35,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.reference-image-sticky.has-images .reference-preview img{height:112px;object-fit:contain;background:#111}
+.reference-image-sticky.has-images .reference-preview.expanded{position:fixed;inset:max(8px,env(safe-area-inset-top)) 8px calc(86px + env(safe-area-inset-bottom)) 8px;z-index:90;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.92);border:0}
+.reference-image-sticky.has-images .reference-preview.expanded img{width:100%;height:100%;max-height:none;object-fit:contain}
+.reference-image-sticky.has-images .reference-preview.expanded span{position:fixed;top:calc(16px + env(safe-area-inset-top));left:16px}
+.club-number-input{font-variant-numeric:tabular-nums}
+@media(max-width:600px){.reference-image-sticky.has-images{grid-template-columns:repeat(2,minmax(0,1fr));top:0}.reference-image-sticky.has-images .reference-preview img{height:92px}.quick-entry-box{scroll-margin-top:125px}}
+
+
+/* Ver1.3.2 マイクラブID入力 */
+.club-id-guide{display:grid;gap:7px;margin:10px 0 12px;padding:9px 10px;border:1px solid #cfe0d1;border-radius:10px;background:#fff;font-size:11px;color:#425044}
+.club-id-guide>strong{font-size:12px;color:#246b2c}
+.club-id-guide>div{display:flex;flex-wrap:wrap;gap:5px 8px}
+.club-id-guide>div span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.club-id-guide b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 4px;border-radius:6px;background:#2e7d32;color:#fff;font-size:10px}
+.club-id-guide.empty{border-color:#e0d4a9;background:#fffbed}
+.club-id-guide a{color:#1f6b29;font-weight:700}

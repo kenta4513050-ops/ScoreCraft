@@ -3,12 +3,48 @@
 const state = {
   mode: "standard",
   enabled: {},
+  myClubs: [],
   holes: Array.from({ length: 18 }, (_, index) => ({
     hole: index + 1, par: null, score: null, putts: null,
     greenDistance: null, teeClub: "", direction: "",
     ob: 0, onePenalty: 0, bunker: 0, memo: ""
   }))
 };
+
+
+const CLUB_CATALOG = [
+  ["driver", "Driver"], ["2w", "2W"], ["3w", "3W"], ["5w", "5W"], ["7w", "7W"], ["9w", "9W"],
+  ["2ut", "2UT"], ["3ut", "3UT"], ["4ut", "4UT"], ["5ut", "5UT"], ["6ut", "6UT"],
+  ["3i", "3I"], ["4i", "4I"], ["5i", "5I"], ["6i", "6I"], ["7i", "7I"], ["8i", "8I"], ["9i", "9I"], ["pw", "PW"],
+  ["46", "46°"], ["48", "48°"], ["50", "50°"], ["52", "52°"], ["54", "54°"], ["56", "56°"], ["58", "58°"], ["60", "60°"],
+  ["putter", "Putter"]
+].map(([id, name]) => ({ id, name }));
+
+function loadClubIdMap() {
+  const selected = typeof getMyClubs === "function" ? getMyClubs() : [];
+  const catalog = new Map(CLUB_CATALOG.map(club => [club.id, club]));
+  state.myClubs = selected.map((clubId, index) => {
+    const club = catalog.get(clubId);
+    return club ? { number: index + 1, ...club } : null;
+  }).filter(Boolean);
+}
+
+function getClubByNumber(value) {
+  const number = Number(value);
+  return state.myClubs.find(club => club.number === number) || null;
+}
+
+function renderClubIdGuide() {
+  const guide = document.getElementById("clubIdGuide");
+  if (!guide) return;
+  if (!state.myClubs.length) {
+    guide.innerHTML = `<strong>クラブID表</strong><span>マイクラブが未登録です。<a href="myclubs.html">設定する</a></span>`;
+    guide.classList.add("empty");
+    return;
+  }
+  guide.classList.remove("empty");
+  guide.innerHTML = `<strong>クラブID表</strong><div>${state.myClubs.map(club => `<span><b>${club.number}</b>${escapeHtml(club.name)}</span>`).join("")}</div>`;
+}
 
 const MODE_LABELS = {
   simple: "スコアとパットを入力します。",
@@ -17,13 +53,13 @@ const MODE_LABELS = {
 };
 
 function inputsForMode(mode) {
-  if (mode === "simple") return { score: true, putt: true, greenDistance: false, teeClub: false, direction: false, ob: false, onePenalty: false, bunker: false, memo: false };
-  if (mode === "standard") return { score: true, putt: true, greenDistance: false, teeClub: true, direction: true, ob: true, onePenalty: true, bunker: true, memo: true };
+  if (mode === "simple") return { score: true, putts: true, greenDistance: false, teeClub: false, direction: false, ob: false, onePenalty: false, bunker: false, memo: false };
+  if (mode === "standard") return { score: true, putts: true, greenDistance: false, teeClub: true, direction: true, ob: true, onePenalty: true, bunker: true, memo: true };
   const config = typeof getConfig === "function" ? getConfig() : null;
   const custom = config?.enabledInputs || {};
   return {
     score: true,
-    putt: custom.putt ?? true,
+    putts: custom.putt ?? custom.putts ?? true,
     greenDistance: custom.greenDistance ?? false,
     teeClub: custom.teeClub ?? false,
     direction: custom.direction ?? false,
@@ -38,9 +74,11 @@ function init() {
   const config = typeof getConfig === "function" ? getConfig() : { inputMode: "standard" };
   state.mode = ["simple", "standard", "custom"].includes(config.inputMode) ? config.inputMode : "standard";
   state.enabled = inputsForMode(state.mode);
+  loadClubIdMap();
   document.getElementById("roundDate").value = new Date().toISOString().slice(0, 10);
   bindEvents();
   renderMode();
+  renderClubIdGuide();
   renderTable();
   updateSummary();
   updateCourseNotice();
@@ -56,6 +94,8 @@ function bindEvents() {
     renderTable();
   }));
   document.getElementById("applyQuickButton").addEventListener("click", applyQuickEntry);
+  document.getElementById("quickField").addEventListener("change", updateQuickEntryGuide);
+  updateQuickEntryGuide();
   document.getElementById("saveImportedRoundButton").addEventListener("click", savePastRound);
   document.getElementById("resetImportButton").addEventListener("click", resetForm);
 }
@@ -64,6 +104,7 @@ function handleImages(event) {
   const files = Array.from(event.target.files || []).slice(0, 2);
   const container = document.getElementById("imagePreviewList");
   container.innerHTML = "";
+  container.classList.toggle("has-images", files.length > 0);
   files.forEach((file, index) => {
     const url = URL.createObjectURL(file);
     const figure = document.createElement("figure");
@@ -114,6 +155,9 @@ function fieldHtml(hole, key) {
     return `<select ${common}>${options.map(([value, label]) => `<option value="${value}" ${hole.direction === value ? "selected" : ""}>${label}</option>`).join("")}</select>`;
   }
   const value = escapeHtml(hole[key] || "");
+  if (key === "teeClub") {
+    return `<input ${common} class="compact-text club-number-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="番号" value="${value}">`;
+  }
   return `<input ${common} class="compact-text" type="text" value="${value}">`;
 }
 
@@ -129,19 +173,50 @@ function handleFieldInput(event) {
   updateCourseNotice();
 }
 
+function updateQuickEntryGuide() {
+  const field = document.getElementById("quickField").value;
+  const input = document.getElementById("quickValue");
+  const guide = document.getElementById("quickEntryGuide");
+  if (field === "teeClub") {
+    input.inputMode = "numeric";
+    input.placeholder = "例：1,9,1,4,1,8,1,1,1";
+    guide.textContent = "マイクラブのIDをカンマまたは空白で9個入力します。下のクラブID表を確認してください。";
+  } else {
+    input.inputMode = "numeric";
+    input.placeholder = "例：434543445";
+    guide.textContent = "数字を区切らず9桁で入力できます。";
+  }
+}
+
 function applyQuickEntry() {
   const field = document.getElementById("quickField").value;
   if (field !== "par" && !state.enabled[field]) {
     setMessage("現在の入力モードでは、この項目は使用しません。", true);
     return;
   }
-  const raw = document.getElementById("quickValue").value.replace(/[^0-9]/g, "");
-  if (raw.length !== 9) {
-    setMessage("9ホール分の数字を9桁で入力してください。", true);
-    return;
-  }
+  const input = document.getElementById("quickValue").value.trim();
   const start = document.getElementById("quickHalf").value === "front" ? 0 : 9;
-  [...raw].forEach((char, index) => { state.holes[start + index][field] = Number(char); });
+
+  if (field === "teeClub") {
+    const values = input.split(/[、,\s/]+/).map(value => value.trim()).filter(Boolean);
+    if (values.length !== 9 || values.some(value => !/^\d{1,3}$/.test(value))) {
+      setMessage("クラブIDを9個、カンマまたは空白で区切って入力してください。", true);
+      return;
+    }
+    const invalid = values.find(value => !getClubByNumber(value));
+    if (invalid) {
+      setMessage(`クラブID「${invalid}」はマイクラブにありません。クラブID表を確認してください。`, true);
+      return;
+    }
+    values.forEach((value, index) => { state.holes[start + index][field] = value; });
+  } else {
+    const raw = input.replace(/[^0-9]/g, "");
+    if (raw.length !== 9) {
+      setMessage("9ホール分の数字を9桁で入力してください。", true);
+      return;
+    }
+    [...raw].forEach((char, index) => { state.holes[start + index][field] = Number(char); });
+  }
   document.getElementById("quickValue").value = "";
   renderTable();
   updateSummary();
@@ -186,9 +261,12 @@ function savePastRound() {
     inputMode: state.mode, distanceUnit: "step", enabledInputs: { ...state.enabled }, currentHole: 18,
     holes: state.holes.map(hole => ({
       hole: hole.hole, par: hole.par, score: hole.score,
-      putts: state.enabled.putt ? hole.putts : null,
+      putts: state.enabled.putts ? hole.putts : null,
       greenDistance: { value: state.enabled.greenDistance ? hole.greenDistance : null, unit: "step" },
-      teeShot: { clubId: "", clubName: state.enabled.teeClub ? hole.teeClub : "", direction: state.enabled.direction ? hole.direction : "" },
+      teeShot: (() => {
+        const club = state.enabled.teeClub ? getClubByNumber(hole.teeClub) : null;
+        return { clubId: club?.id || "", clubName: club?.name || "", direction: state.enabled.direction ? hole.direction : "" };
+      })(),
       ob: state.enabled.ob ? (hole.ob || 0) : 0,
       onePenalty: state.enabled.onePenalty ? (hole.onePenalty || 0) : 0,
       bunker: state.enabled.bunker ? (hole.bunker || 0) : 0,
@@ -198,7 +276,7 @@ function savePastRound() {
     outPar: sumRange("par", 0, 9), inPar: sumRange("par", 9, 18), totalPar: sum("par"),
     teeName: document.getElementById("teeName").value.trim(),
     greenName: document.getElementById("greenName").value.trim(),
-    importSource: "past-round-manual-v1.3.0", createdAt: now, updatedAt: now
+    importSource: "past-round-manual-v1.3.2", createdAt: now, updatedAt: now
   };
 
   if (document.getElementById("saveCourseCheck").checked && typeof ensureCourseFromRound === "function") {
