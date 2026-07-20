@@ -132,122 +132,114 @@ function handleImages(event) {
   const hasImages = files.length > 0;
   container.classList.toggle("has-images", hasImages);
   document.body.classList.toggle("has-fixed-reference-images", hasImages);
+  document.body.classList.remove("reference-preview-enlarged");
+
   files.forEach((file, index) => {
     const url = URL.createObjectURL(file);
     const figure = document.createElement("figure");
     figure.className = "import-image-preview reference-preview";
+    figure.dataset.imageIndex = String(index);
     figure.innerHTML = `<img src="${url}" alt="参考画像${index + 1}"><span>画像 ${index + 1}</span>`;
-    figure.querySelector("img").addEventListener("click", () => openReferenceViewer(url, `画像 ${index + 1}`));
+    figure.querySelector("img").addEventListener("click", () => toggleDockedReferenceImage(index));
     container.appendChild(figure);
   });
+
+  if (hasImages) {
+    ensureReferenceControls();
+    bindVisualViewportSupport();
+    updateReferenceViewportMetrics();
+  } else {
+    removeReferenceControls();
+    updateReferenceViewportMetrics();
+  }
 }
 
-function ensureReferenceViewer() {
-  let viewer = document.getElementById("referenceImageViewer");
-  if (viewer) return viewer;
-  viewer = document.createElement("div");
-  viewer.id = "referenceImageViewer";
-  viewer.className = "reference-image-viewer";
-  viewer.setAttribute("aria-hidden", "true");
-  viewer.innerHTML = `
-    <div class="reference-viewer-toolbar">
-      <strong id="referenceViewerTitle">参考画像</strong>
-      <span>ピンチで拡大・ドラッグで移動</span>
-      <button id="referenceViewerClose" type="button" aria-label="画像を閉じる">×</button>
-    </div>
-    <div id="referenceViewerStage" class="reference-viewer-stage">
-      <img id="referenceViewerImage" alt="拡大した参考画像">
-    </div>`;
-  document.body.appendChild(viewer);
-  document.getElementById("referenceViewerClose").addEventListener("click", closeReferenceViewer);
-  viewer.addEventListener("click", event => { if (event.target === viewer) closeReferenceViewer(); });
-  bindReferenceViewerGestures();
-  return viewer;
-}
+let enlargedReferenceIndex = null;
+let visualViewportBound = false;
 
-let viewerScale = 1;
-let viewerX = 0;
-let viewerY = 0;
-let viewerStartX = 0;
-let viewerStartY = 0;
-let viewerStartDistance = 0;
-let viewerStartScale = 1;
-let viewerDragging = false;
-
-function applyViewerTransform() {
-  const image = document.getElementById("referenceViewerImage");
-  if (!image) return;
-  image.style.transform = `translate3d(${viewerX}px, ${viewerY}px, 0) scale(${viewerScale})`;
-}
-
-function resetViewerTransform() {
-  viewerScale = 1;
-  viewerX = 0;
-  viewerY = 0;
-  applyViewerTransform();
-}
-
-function openReferenceViewer(url, title) {
-  const viewer = ensureReferenceViewer();
-  const image = document.getElementById("referenceViewerImage");
-  document.getElementById("referenceViewerTitle").textContent = title || "参考画像";
-  image.src = url;
-  resetViewerTransform();
-  viewer.classList.add("open");
-  viewer.setAttribute("aria-hidden", "false");
-  document.body.classList.add("reference-viewer-open");
-}
-
-function closeReferenceViewer() {
-  const viewer = document.getElementById("referenceImageViewer");
-  if (!viewer) return;
-  viewer.classList.remove("open");
-  viewer.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("reference-viewer-open");
-  resetViewerTransform();
-}
-
-function touchDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.hypot(dx, dy);
-}
-
-function bindReferenceViewerGestures() {
-  const stage = document.getElementById("referenceViewerStage");
-  const image = document.getElementById("referenceViewerImage");
-  stage.addEventListener("touchstart", event => {
-    if (event.touches.length === 2) {
-      viewerStartDistance = touchDistance(event.touches);
-      viewerStartScale = viewerScale;
-      viewerDragging = false;
-    } else if (event.touches.length === 1) {
-      viewerStartX = event.touches[0].clientX - viewerX;
-      viewerStartY = event.touches[0].clientY - viewerY;
-      viewerDragging = true;
-    }
-  }, { passive: false });
-  stage.addEventListener("touchmove", event => {
-    event.preventDefault();
-    if (event.touches.length === 2 && viewerStartDistance) {
-      viewerScale = Math.min(5, Math.max(1, viewerStartScale * touchDistance(event.touches) / viewerStartDistance));
-      if (viewerScale === 1) { viewerX = 0; viewerY = 0; }
-      applyViewerTransform();
-    } else if (event.touches.length === 1 && viewerDragging && viewerScale > 1) {
-      viewerX = event.touches[0].clientX - viewerStartX;
-      viewerY = event.touches[0].clientY - viewerStartY;
-      applyViewerTransform();
-    }
-  }, { passive: false });
-  stage.addEventListener("touchend", event => {
-    if (event.touches.length < 2) viewerStartDistance = 0;
-    if (event.touches.length === 0) viewerDragging = false;
+function ensureReferenceControls() {
+  const container = document.getElementById("imagePreviewList");
+  if (!container || document.getElementById("referencePreviewControls")) return;
+  const controls = document.createElement("div");
+  controls.id = "referencePreviewControls";
+  controls.className = "reference-preview-controls";
+  controls.innerHTML = `
+    <span>画像をタップで拡大</span>
+    <button id="referencePreviewShrink" type="button" aria-label="画像を縮小">縮小</button>`;
+  controls.querySelector("button").addEventListener("click", event => {
+    event.stopPropagation();
+    shrinkDockedReferenceImage();
   });
-  image.addEventListener("dblclick", () => {
-    if (viewerScale > 1) resetViewerTransform();
-    else { viewerScale = 2; applyViewerTransform(); }
-  });
+  container.appendChild(controls);
 }
+
+function removeReferenceControls() {
+  document.getElementById("referencePreviewControls")?.remove();
+}
+
+function toggleDockedReferenceImage(index) {
+  if (document.body.classList.contains("reference-preview-enlarged") && enlargedReferenceIndex === index) {
+    shrinkDockedReferenceImage();
+    return;
+  }
+  enlargedReferenceIndex = index;
+  document.body.classList.add("reference-preview-enlarged");
+  document.querySelectorAll("#imagePreviewList .reference-preview").forEach((figure, figureIndex) => {
+    figure.classList.toggle("active-reference", figureIndex === index);
+  });
+  updateReferenceViewportMetrics();
+}
+
+function shrinkDockedReferenceImage() {
+  enlargedReferenceIndex = null;
+  document.body.classList.remove("reference-preview-enlarged");
+  document.querySelectorAll("#imagePreviewList .reference-preview").forEach(figure => {
+    figure.classList.remove("active-reference");
+  });
+  updateReferenceViewportMetrics();
+}
+
+function bindVisualViewportSupport() {
+  if (visualViewportBound || !window.visualViewport) return;
+  const update = () => updateReferenceViewportMetrics();
+  window.visualViewport.addEventListener("resize", update);
+  window.visualViewport.addEventListener("scroll", update);
+  window.addEventListener("orientationchange", update);
+  visualViewportBound = true;
+}
+
+function updateReferenceViewportMetrics() {
+  const root = document.documentElement;
+  const viewport = window.visualViewport;
+  const top = viewport ? Math.max(0, viewport.offsetTop) : 0;
+  const height = viewport ? viewport.height : window.innerHeight;
+  const enlarged = document.body.classList.contains("reference-preview-enlarged");
+  const panelHeight = enlarged
+    ? Math.max(170, Math.min(330, Math.round(height * 0.38)))
+    : 120;
+  root.style.setProperty("--reference-vv-top", `${top}px`);
+  root.style.setProperty("--reference-panel-height", `${panelHeight}px`);
+  root.style.setProperty("--reference-content-offset", `${panelHeight + 20}px`);
+}
+
+function keepFocusedFieldVisible(event) {
+  if (!document.body.classList.contains("has-fixed-reference-images")) return;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
+  window.setTimeout(() => {
+    const panelHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--reference-panel-height")) || 120;
+    const rect = target.getBoundingClientRect();
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const minY = panelHeight + 18;
+    const maxY = viewportHeight - 90;
+    if (rect.top < minY || rect.bottom > maxY) {
+      const desiredTop = window.scrollY + rect.top - minY - 12;
+      window.scrollTo({ top: Math.max(0, desiredTop), behavior: "smooth" });
+    }
+  }, 180);
+}
+
+document.addEventListener("focusin", keepFocusedFieldVisible);
 
 function renderMode() {
   document.querySelectorAll("#pastModeSelector [data-mode]").forEach(button => {

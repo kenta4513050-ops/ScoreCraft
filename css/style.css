@@ -1426,3 +1426,97 @@ body.has-fixed-reference-images .rakuten-import-page{
 }
 body.reference-viewer-open{overflow:hidden;touch-action:none}
 .reference-preview img{touch-action:manipulation}
+
+/* Ver1.3.7: 入力しながら使える固定拡大プレビュー */
+:root{
+  --reference-vv-top:0px;
+  --reference-panel-height:120px;
+  --reference-content-offset:140px;
+}
+.reference-image-sticky.has-images{
+  top:calc(var(--reference-vv-top) + env(safe-area-inset-top,0px)) !important;
+  height:var(--reference-panel-height);
+  max-height:var(--reference-panel-height);
+  overflow:hidden;
+  transition:height .18s ease,max-height .18s ease;
+  align-items:stretch;
+}
+body.has-fixed-reference-images .rakuten-import-page{
+  padding-top:var(--reference-content-offset) !important;
+}
+.reference-image-sticky.has-images .reference-preview{
+  height:100%;
+  position:relative;
+}
+.reference-image-sticky.has-images .reference-preview img{
+  height:100% !important;
+  min-height:0;
+}
+.reference-preview-controls{
+  position:absolute;
+  right:8px;
+  bottom:6px;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:4px 5px 4px 8px;
+  border-radius:999px;
+  background:rgba(0,0,0,.68);
+  color:#fff;
+  font-size:10px;
+  pointer-events:none;
+}
+.reference-preview-controls button{
+  display:none;
+  min-height:30px;
+  padding:3px 10px;
+  border:0;
+  border-radius:999px;
+  background:#fff;
+  color:#1f5f29;
+  font-size:12px;
+  font-weight:800;
+  pointer-events:auto;
+}
+body.reference-preview-enlarged .reference-image-sticky.has-images{
+  grid-template-columns:1fr;
+  padding:6px;
+  background:rgba(12,12,12,.98);
+}
+body.reference-preview-enlarged .reference-image-sticky.has-images .reference-preview{
+  display:none;
+}
+body.reference-preview-enlarged .reference-image-sticky.has-images .reference-preview.active-reference{
+  display:block;
+}
+body.reference-preview-enlarged .reference-image-sticky.has-images .reference-preview.active-reference img{
+  width:100%;
+  height:100% !important;
+  object-fit:contain;
+  touch-action:pinch-zoom pan-x pan-y;
+}
+body.reference-preview-enlarged .reference-preview-controls{
+  display:flex;
+}
+body.reference-preview-enlarged .reference-preview-controls span{
+  display:none;
+}
+body.reference-preview-enlarged .reference-preview-controls button{
+  display:block;
+}
+.rakuten-import-page input,
+.rakuten-import-page select,
+.rakuten-import-page textarea,
+.quick-entry-box,
+.import-hole-table{
+  scroll-margin-top:calc(var(--reference-panel-height) + 26px);
+}
+/* 旧モーダルは使用しない */
+.reference-image-viewer{display:none!important}
+body.reference-viewer-open{overflow:auto!important;touch-action:auto!important}
+@media(max-width:600px){
+  body.has-fixed-reference-images .rakuten-import-page{
+    padding-top:var(--reference-content-offset) !important;
+  }
+}
