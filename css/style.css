@@ -1588,3 +1588,37 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
 .putt-chart-scroll{width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 #puttDistanceChart{display:block;max-width:none}
 .putt-chart-note{margin:8px 0 0;color:var(--subtext);font-size:10px;text-align:center}
+
+/* ==========================================
+   Ver1.3.13 分析グラフ 3:4レスポンシブ対応
+========================================== */
+.score-chart-area,
+.putt-distance-chart-area,
+.putt-chart-scroll {
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+#scoreChart,
+#puttDistanceChart {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+}
+.putt-chart-scroll {
+    padding-bottom: 0;
+    -webkit-overflow-scrolling: auto;
+}
+.analysis-chart-legend {
+    align-items: center;
+    justify-content: center;
+    gap: 6px 12px;
+    font-size: 10px;
+}
+@media (max-width: 420px) {
+    .analysis-chart-legend { gap: 5px 9px; font-size: 9px; }
+    .card:has(.score-chart-area),
+    .card:has(.putt-distance-chart-area) { padding-left: 10px; padding-right: 10px; }
+    .putt-chart-note { font-size: 9px; }
+}
