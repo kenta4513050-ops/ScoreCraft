@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "scorecraft-v1.3.11";
+const CACHE_NAME = "scorecraft-v1.3.12";
 const APP_FILES = [
   "./", "./index.html", "./round.html", "./history.html", "./analysis.html",
   "./myclubs.html", "./settings.html", "./course-management.html", "./import-rakuten.html",

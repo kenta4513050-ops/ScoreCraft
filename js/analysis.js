@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.11 - analysis.js
+// ScoreCraft Ver1.3.12 - analysis.js
 // ============================================
 "use strict";
 
@@ -76,47 +76,135 @@ function renderDirectionDetail(counts){
 }
 
 function renderPuttDistanceAnalysis(){
-    const buckets=[]; for(let i=1;i<=10;i++) buckets.push({label:`${i}歩`,min:i,max:i,putts:[]});
+    const buckets=[];
+    for(let i=1;i<=10;i++) buckets.push({label:`${i}歩`,min:i,max:i,putts:[]});
     buckets.push({label:"11〜15歩",min:11,max:15,putts:[]},{label:"16歩以上",min:16,max:Infinity,putts:[]});
+
     analysisRounds.forEach(round=>getHoles(round).forEach(hole=>{
         const distance=Number(hole?.greenDistance?.value), putts=Number(hole?.putts);
         if(!Number.isFinite(distance)||!Number.isFinite(putts)||distance<1) return;
-        const bucket=buckets.find(b=>distance>=b.min&&distance<=b.max); if(bucket) bucket.putts.push(putts);
+        const bucket=buckets.find(b=>distance>=b.min&&distance<=b.max);
+        if(bucket) bucket.putts.push(putts);
     }));
+
     const container=document.getElementById("puttDistanceAnalysis");
-    const hasData=buckets.some(b=>b.putts.length);
-    if(!hasData){container.innerHTML=`<div class="empty-state compact"><p>パット距離とパット数の入力データがありません。</p></div>`;return;}
-    container.innerHTML=`<div class="putt-distance-list">${buckets.map(b=>`<div class="putt-distance-row"><span>${b.label}</span><strong>${b.putts.length?`${formatDecimal(average(b.putts))}パット`:'—'}</strong><small>${b.putts.length?`${b.putts.length}ホール`:'データなし'}</small></div>`).join("")}</div>`;
+    if(!buckets.some(b=>b.putts.length)){
+        container.innerHTML=`<div class="empty-state compact"><p>パット距離とパット数の入力データがありません。</p></div>`;
+        return;
+    }
+
+    container.innerHTML=`<div class="putt-chart-scroll"><canvas id="puttDistanceChart" aria-label="パット距離別の平均パット数を示す棒グラフ"></canvas></div><p class="putt-chart-note">棒の上：平均パット数 ／ 距離の下：対象ホール数</p>`;
+    drawPuttDistanceChart(buckets);
+}
+
+function drawPuttDistanceChart(buckets){
+    const canvas=document.getElementById("puttDistanceChart");
+    if(!canvas||!canvas.getContext) return;
+    const holder=canvas.parentElement;
+    const cssWidth=Math.max(720,Math.floor(holder.getBoundingClientRect().width));
+    const height=340, ratio=window.devicePixelRatio||1;
+    canvas.width=cssWidth*ratio; canvas.height=height*ratio;
+    canvas.style.width=`${cssWidth}px`; canvas.style.height=`${height}px`;
+    const c=canvas.getContext("2d"); c.setTransform(ratio,0,0,ratio,0,0); c.clearRect(0,0,cssWidth,height);
+
+    const left=45,right=14,top=30,bottom=72,plotW=cssWidth-left-right,plotH=height-top-bottom;
+    const values=buckets.map(b=>b.putts.length?average(b.putts):NaN).filter(Number.isFinite);
+    const maxData=values.length?Math.max(...values):3;
+    const yMax=Math.max(3,Math.ceil((maxData+0.25)*2)/2);
+    const tickStep=0.5;
+
+    c.font='11px "Yu Gothic UI",sans-serif'; c.textBaseline="middle";
+    for(let v=0;v<=yMax+0.001;v+=tickStep){
+        const y=top+plotH-(v/yMax)*plotH;
+        c.strokeStyle="#e4e9e5"; c.lineWidth=1; c.beginPath(); c.moveTo(left,y); c.lineTo(cssWidth-right,y); c.stroke();
+        c.fillStyle="#69756d"; c.textAlign="right"; c.fillText(v.toFixed(1),left-7,y);
+    }
+    c.strokeStyle="#738078"; c.lineWidth=1.2; c.beginPath(); c.moveTo(left,top); c.lineTo(left,top+plotH); c.lineTo(cssWidth-right,top+plotH); c.stroke();
+
+    const slot=plotW/buckets.length, barW=Math.min(42,slot*0.58);
+    buckets.forEach((b,i)=>{
+        const avg=b.putts.length?average(b.putts):NaN;
+        const x=left+slot*i+slot/2;
+        if(Number.isFinite(avg)){
+            const h=(avg/yMax)*plotH, y=top+plotH-h;
+            const grad=c.createLinearGradient(0,y,0,top+plotH); grad.addColorStop(0,"#4b7ee8"); grad.addColorStop(1,"#2d63cf");
+            c.fillStyle=grad; roundedRect(c,x-barW/2,y,barW,h,5); c.fill();
+            c.fillStyle="#1f5dcc"; c.font='bold 11px "Yu Gothic UI",sans-serif'; c.textAlign="center"; c.textBaseline="bottom"; c.fillText(avg.toFixed(2),x,y-6);
+        }
+        c.fillStyle="#25302a"; c.font='11px "Yu Gothic UI",sans-serif'; c.textAlign="center"; c.textBaseline="top"; c.fillText(b.label,x,top+plotH+11);
+        c.fillStyle="#7b8580"; c.font='10px "Yu Gothic UI",sans-serif'; c.fillText(b.putts.length?`${b.putts.length}ホール`:"—",x,top+plotH+31);
+    });
+
+    c.save(); c.translate(13,top+plotH/2); c.rotate(-Math.PI/2); c.fillStyle="#526058"; c.font='11px "Yu Gothic UI",sans-serif'; c.textAlign="center"; c.textBaseline="top"; c.fillText("平均パット数（回）",0,0); c.restore();
 }
 
 function renderScoreChart(){
     const canvas=document.getElementById("scoreChart"); if(!canvas||!canvas.getContext)return;
     const rounds=[...analysisRounds].reverse().slice(-12);
-    const series=[
-        {label:"スコア",values:rounds.map(getRoundScore)},
-        {label:"パット数",values:rounds.map(getRoundPutts)},
-        {label:"平均距離",values:rounds.map(getRoundAverageDistance)}
-    ];
-    const rect=canvas.parentElement.getBoundingClientRect(), width=Math.max(300,Math.floor(rect.width)), height=410, ratio=window.devicePixelRatio||1;
-    canvas.width=width*ratio;canvas.height=height*ratio;canvas.style.width=`${width}px`;canvas.style.height=`${height}px`;
-    const c=canvas.getContext("2d");c.setTransform(ratio,0,0,ratio,0,0);c.clearRect(0,0,width,height);
-    const left=48,right=14,top=15,bottom=38,gap=13,bandH=(height-top-bottom-gap*2)/3,chartW=width-left-right;
-    series.forEach((s,band)=>{
-        const values=s.values.filter(Number.isFinite); let min=values.length?Math.min(...values):0,max=values.length?Math.max(...values):1;
-        if(min===max){min-=1;max+=1;} const pad=(max-min)*0.15;min=Math.max(0,min-pad);max+=pad;
-        const y0=top+band*(bandH+gap);
-        c.font='bold 11px "Yu Gothic UI",sans-serif';c.fillStyle="#555";c.textAlign="left";c.textBaseline="top";c.fillText(s.label,4,y0+3);
-        for(let i=0;i<=2;i++){const y=y0+bandH*i/2;c.strokeStyle="#e3e8e3";c.lineWidth=1;c.beginPath();c.moveTo(left,y);c.lineTo(width-right,y);c.stroke();const val=max-(max-min)*i/2;c.fillStyle="#777";c.textAlign="right";c.textBaseline="middle";c.font='10px "Yu Gothic UI",sans-serif';c.fillText(formatAxisValue(val,s.label),left-6,y);}
-        const pts=s.values.map((v,i)=>({x:rounds.length===1?left+chartW/2:left+chartW*i/(rounds.length-1),y:Number.isFinite(v)?y0+(max-v)/(max-min)*bandH:null,v}));
-        c.strokeStyle=band===0?"#2E7D32":band===1?"#1976D2":"#EF6C00";c.lineWidth=2.5;c.beginPath();let started=false;pts.forEach(p=>{if(p.y===null){started=false;return;}if(!started){c.moveTo(p.x,p.y);started=true;}else c.lineTo(p.x,p.y);});c.stroke();
-        pts.forEach(p=>{if(p.y===null)return;c.fillStyle="#fff";c.strokeStyle=band===0?"#2E7D32":band===1?"#1976D2":"#EF6C00";c.lineWidth=2;c.beginPath();c.arc(p.x,p.y,4,0,Math.PI*2);c.fill();c.stroke();});
-    });
-    c.fillStyle="#777";c.font='10px "Yu Gothic UI",sans-serif';c.textAlign="center";c.textBaseline="top";rounds.forEach((r,i)=>{const x=rounds.length===1?left+chartW/2:left+chartW*i/(rounds.length-1);c.fillText(formatChartDate(r.date),x,height-bottom+12);});
+    const scores=rounds.map(getRoundScore), putts=rounds.map(getRoundPutts), distances=rounds.map(getRoundAverageDistance);
+    const rect=canvas.parentElement.getBoundingClientRect(), width=Math.max(330,Math.floor(rect.width)), height=390, ratio=window.devicePixelRatio||1;
+    canvas.width=width*ratio; canvas.height=height*ratio; canvas.style.width=`${width}px`; canvas.style.height=`${height}px`;
+    const c=canvas.getContext("2d"); c.setTransform(ratio,0,0,ratio,0,0); c.clearRect(0,0,width,height);
+
+    const left=44,right=82,top=28,bottom=52,plotW=width-left-right,plotH=height-top-bottom,plotRight=left+plotW;
+    const scoreScale=makeScale(scores,5,5), puttScale=makeScale(putts,4,2), distanceScale=makeScale(distances,4,0.5);
+
+    // grid and left score axis
+    c.font='10px "Yu Gothic UI",sans-serif'; c.textBaseline="middle";
+    for(let i=0;i<=5;i++){
+        const y=top+plotH*i/5, value=scoreScale.max-(scoreScale.max-scoreScale.min)*i/5;
+        c.strokeStyle="#e3e8e4"; c.lineWidth=1; c.beginPath(); c.moveTo(left,y); c.lineTo(plotRight,y); c.stroke();
+        c.fillStyle="#2E7D32"; c.textAlign="right"; c.fillText(String(Math.round(value)),left-7,y);
+    }
+    // blue right axis (putts)
+    for(let i=0;i<=4;i++){
+        const y=top+plotH*i/4, value=puttScale.max-(puttScale.max-puttScale.min)*i/4;
+        c.fillStyle="#2367d7"; c.textAlign="left"; c.fillText(String(Math.round(value)),plotRight+7,y);
+    }
+    // orange far-right axis (average distance)
+    for(let i=0;i<=4;i++){
+        const y=top+plotH*i/4, value=distanceScale.max-(distanceScale.max-distanceScale.min)*i/4;
+        c.fillStyle="#f26a13"; c.textAlign="right"; c.fillText(value.toFixed(1),width-2,y);
+    }
+
+    c.strokeStyle="#2E7D32"; c.lineWidth=1.2; c.beginPath(); c.moveTo(left,top); c.lineTo(left,top+plotH); c.stroke();
+    c.strokeStyle="#2367d7"; c.beginPath(); c.moveTo(plotRight,top); c.lineTo(plotRight,top+plotH); c.stroke();
+    c.strokeStyle="#f26a13"; c.beginPath(); c.moveTo(width-31,top); c.lineTo(width-31,top+plotH); c.stroke();
+
+    c.font='bold 10px "Yu Gothic UI",sans-serif'; c.textBaseline="bottom";
+    c.fillStyle="#2E7D32"; c.textAlign="left"; c.fillText("スコア",left,top-8);
+    c.fillStyle="#2367d7"; c.textAlign="left"; c.fillText("パット",plotRight+5,top-8);
+    c.fillStyle="#f26a13"; c.textAlign="right"; c.fillText("距離",width-2,top-8);
+
+    drawLineSeries(c,scores,scoreScale,"#2E7D32",left,top,plotW,plotH,rounds.length,0);
+    drawLineSeries(c,putts,puttScale,"#2367d7",left,top,plotW,plotH,rounds.length,0);
+    drawLineSeries(c,distances,distanceScale,"#f26a13",left,top,plotW,plotH,rounds.length,1);
+
+    c.fillStyle="#6c7770"; c.font='10px "Yu Gothic UI",sans-serif'; c.textAlign="center"; c.textBaseline="top";
+    rounds.forEach((r,i)=>{const x=rounds.length===1?left+plotW/2:left+plotW*i/(rounds.length-1); c.fillText(formatChartDate(r.date),x,top+plotH+12);});
+    c.fillStyle="#526058"; c.font='11px "Yu Gothic UI",sans-serif'; c.fillText("ラウンド",left+plotW/2,height-17);
+}
+
+function makeScale(values,steps,unit){
+    const finite=values.filter(Number.isFinite); let min=finite.length?Math.min(...finite):0,max=finite.length?Math.max(...finite):unit*steps;
+    if(min===max){min-=unit;max+=unit;}
+    min=Math.max(0,Math.floor((min-unit)/unit)*unit); max=Math.ceil((max+unit)/unit)*unit;
+    if(max-min<unit*steps) max=min+unit*steps;
+    return {min,max};
+}
+function drawLineSeries(c,values,scale,color,left,top,plotW,plotH,count,decimals){
+    const pts=values.map((v,i)=>({x:count===1?left+plotW/2:left+plotW*i/(count-1),y:Number.isFinite(v)?top+(scale.max-v)/(scale.max-scale.min)*plotH:null,v}));
+    c.strokeStyle=color; c.lineWidth=2.6; c.lineJoin="round"; c.lineCap="round"; c.beginPath(); let started=false;
+    pts.forEach(p=>{if(p.y===null){started=false;return;} if(!started){c.moveTo(p.x,p.y);started=true;}else c.lineTo(p.x,p.y);}); c.stroke();
+    pts.forEach(p=>{if(p.y===null)return; c.fillStyle="#fff"; c.strokeStyle=color; c.lineWidth=2.2; c.beginPath(); c.arc(p.x,p.y,4.3,0,Math.PI*2); c.fill(); c.stroke();});
+}
+function roundedRect(c,x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2); c.beginPath(); c.moveTo(x+rr,y); c.arcTo(x+w,y,x+w,y+h,rr); c.arcTo(x+w,y+h,x,y+h,rr); c.arcTo(x,y+h,x,y,rr); c.arcTo(x,y,x+w,y,rr); c.closePath();
 }
 function getRoundPutts(round){return getHoles(round).reduce((s,h)=>s+(Number.isFinite(Number(h?.putts))?Number(h.putts):0),0);}
 function getRoundAverageDistance(round){const vals=getHoles(round).map(h=>Number(h?.greenDistance?.value)).filter(v=>Number.isFinite(v)&&v>=0);return vals.length?average(vals):NaN;}
 function formatAxisValue(v,label){return label==="平均距離"?v.toFixed(1):String(Math.round(v));}
-function handleChartResize(){clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(analysisRounds.length)renderScoreChart();},120);}
+function handleChartResize(){clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(analysisRounds.length){renderScoreChart();renderPuttDistanceAnalysis();}},120);}
 function sumHoleValue(key){return analysisRounds.reduce((rt,r)=>rt+getHoles(r).reduce((ht,h)=>{const v=Number(h?.[key]);return ht+(Number.isFinite(v)?v:0);},0),0);}
 function getHoles(round){return Array.isArray(round?.holes)?round.holes:[];}
 function getRoundScore(round){const total=Number(round?.total);if(Number.isFinite(total)&&total>0)return total;return getHoles(round).reduce((s,h)=>s+(Number.isFinite(Number(h?.score))?Number(h.score):0),0);}
