@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.13 - analysis.js
+// ScoreCraft Ver1.3.14 - analysis.js
 // ============================================
 "use strict";
 
@@ -157,7 +157,12 @@ function renderScoreChart(){
     const compact=width<390;
     const left=compact?34:44,right=compact?67:82,top=compact?25:30,bottom=compact?39:50;
     const plotW=width-left-right,plotH=height-top-bottom,plotRight=left+plotW;
-    const scoreScale=makeScale(scores,5,5),puttScale=makeScale(putts,4,2),distanceScale=makeScale(distances,4,0.5);
+    // 系列ごとに余白を変え、棒と折れ線の重なりを抑える。
+    // スコアは上側の余白を広めに取り、棒の上端を少し下げる。
+    // パット数と平均距離は下限側の余白を広めに取り、折れ線を上側へ配置する。
+    const scoreScale=makeSeriesScale(scores,{unit:5,steps:5,lowerPadding:5,upperPadding:15,minFloor:0});
+    const puttScale=makeSeriesScale(putts,{unit:2,steps:4,lowerPadding:6,upperPadding:2,minFloor:0});
+    const distanceScale=makeSeriesScale(distances,{unit:0.5,steps:4,lowerPadding:1.5,upperPadding:0.5,minFloor:0});
     const axisFont=compact?8:10,labelFont=compact?7.5:10,valueFont=compact?7.5:10;
 
     c.font=`${axisFont}px "Yu Gothic UI",sans-serif`; c.textBaseline="middle";
@@ -205,10 +210,18 @@ function renderScoreChart(){
     c.fillStyle="#526058"; c.font=`${compact?8:10}px "Yu Gothic UI",sans-serif`; c.fillText("ラウンド",left+plotW/2,height-13);
 }
 
-function makeScale(values,steps,unit){
-    const finite=values.filter(Number.isFinite); let min=finite.length?Math.min(...finite):0,max=finite.length?Math.max(...finite):unit*steps;
-    if(min===max){min-=unit;max+=unit;}
-    min=Math.max(0,Math.floor((min-unit)/unit)*unit); max=Math.ceil((max+unit)/unit)*unit;
+function makeSeriesScale(values,options={}){
+    const unit=Number(options.unit)||1;
+    const steps=Number(options.steps)||4;
+    const lowerPadding=Number.isFinite(Number(options.lowerPadding))?Number(options.lowerPadding):unit;
+    const upperPadding=Number.isFinite(Number(options.upperPadding))?Number(options.upperPadding):unit;
+    const minFloor=Number.isFinite(Number(options.minFloor))?Number(options.minFloor):0;
+    const finite=values.filter(Number.isFinite);
+    let dataMin=finite.length?Math.min(...finite):minFloor;
+    let dataMax=finite.length?Math.max(...finite):minFloor+unit*steps;
+    if(dataMin===dataMax){dataMin-=unit;dataMax+=unit;}
+    let min=Math.max(minFloor,Math.floor((dataMin-lowerPadding)/unit)*unit);
+    let max=Math.ceil((dataMax+upperPadding)/unit)*unit;
     if(max-min<unit*steps) max=min+unit*steps;
     return {min,max};
 }
