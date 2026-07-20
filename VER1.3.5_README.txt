@@ -1,0 +1,12 @@
+ScoreCraft Ver1.3.5
+
+公開再試行用アップデート
+
+- Ver1.3.4の機能をそのまま継承
+- 参考画像の画面上部固定表示を維持
+- バージョン表記をVer1.3.5へ更新
+- PWAキャッシュ名をscorecraft-v1.3.5へ更新
+- GitHub Pagesの新しいデプロイを開始できる更新版
+
+GitHub Desktopのコミット名例:
+Ver1.3.5 - Retry GitHub Pages deployment

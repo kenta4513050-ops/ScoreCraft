@@ -1338,7 +1338,7 @@ textarea {
 .club-id-guide>div{max-height:none;overflow:visible}
 
 
-/* Ver1.3.4: iPhone Safariでも参考画像を常時固定表示 */
+/* Ver1.3.5: iPhone Safariでも参考画像を常時固定表示 */
 .reference-image-sticky.has-images{
   position:fixed !important;
   top:env(safe-area-inset-top, 0px) !important;
