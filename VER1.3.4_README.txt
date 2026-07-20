@@ -1,0 +1,8 @@
+ScoreCraft Ver1.3.4
+
+修正内容:
+- 過去ラウンド入力の参考画像を画面上部へ常時固定
+- iPhone Safariでposition: stickyが解除される問題を回避するためposition: fixed方式へ変更
+- 固定画像分の余白を自動確保
+- 画像タップ時の拡大表示を維持
+- PWAキャッシュをVer1.3.4へ更新

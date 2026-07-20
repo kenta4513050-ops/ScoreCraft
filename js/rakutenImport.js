@@ -129,7 +129,9 @@ function handleImages(event) {
   const files = Array.from(event.target.files || []).slice(0, 2);
   const container = document.getElementById("imagePreviewList");
   container.innerHTML = "";
-  container.classList.toggle("has-images", files.length > 0);
+  const hasImages = files.length > 0;
+  container.classList.toggle("has-images", hasImages);
+  document.body.classList.toggle("has-fixed-reference-images", hasImages);
   files.forEach((file, index) => {
     const url = URL.createObjectURL(file);
     const figure = document.createElement("figure");
