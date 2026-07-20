@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <title>ScoreCraft - 過去ラウンド入力 Ver1.3.8</title>
+  <title>ScoreCraft - 過去ラウンド入力 Ver1.3.9</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -55,7 +55,12 @@
       <div class="quick-entry-grid">
         <label>対象<select id="quickHalf"><option value="front">前半 1～9H</option><option value="back">後半 10～18H</option></select></label>
         <label>項目<select id="quickField"><option value="par">PAR</option><option value="score">スコア</option><option value="putts">パット</option><option value="teeClub">クラブ番号</option><option value="ob">OB</option><option value="onePenalty">1ペナ</option><option value="bunker">バンカー</option></select></label>
-        <label class="quick-value-label">連続値<input id="quickValue" inputmode="numeric" placeholder="例：434543445" autocomplete="off"></label>
+        <label class="quick-value-label">連続値
+          <div class="quick-value-input-row">
+            <input id="quickValue" inputmode="numeric" placeholder="例：434543445" autocomplete="off">
+            <button id="insertCommaButton" class="quick-comma-button" type="button" aria-label="カンマを入力">,</button>
+          </div>
+        </label>
         <button id="applyQuickButton" class="secondary-button" type="button">反映</button>
       </div>
     </div>

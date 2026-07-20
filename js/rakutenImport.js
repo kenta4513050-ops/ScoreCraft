@@ -120,6 +120,7 @@ function bindEvents() {
   }));
   document.getElementById("applyQuickButton").addEventListener("click", applyQuickEntry);
   document.getElementById("quickField").addEventListener("change", updateQuickEntryGuide);
+  document.getElementById("insertCommaButton").addEventListener("click", insertQuickEntryComma);
   updateQuickEntryGuide();
   document.getElementById("saveImportedRoundButton").addEventListener("click", savePastRound);
   document.getElementById("resetImportButton").addEventListener("click", resetForm);
@@ -315,12 +316,25 @@ function updateQuickEntryGuide() {
   if (field === "teeClub") {
     input.inputMode = "numeric";
     input.placeholder = "例：1,9,1,4,1,8,1,1,1";
-    guide.textContent = "マイクラブのIDをカンマまたは空白で9個入力します。下のクラブID表を確認してください。";
+    guide.textContent = "マイクラブのIDをカンマで9個入力します。下のクラブID表を確認してください。";
   } else {
     input.inputMode = "numeric";
     input.placeholder = "例：434543445";
     guide.textContent = "数字を区切らず9桁で入力できます。";
   }
+  const commaButton = document.getElementById("insertCommaButton");
+  if (commaButton) commaButton.hidden = field !== "teeClub";
+}
+
+function insertQuickEntryComma() {
+  const input = document.getElementById("quickValue");
+  if (!input || document.getElementById("quickField").value !== "teeClub") return;
+
+  const start = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
+  const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : start;
+  input.setRangeText(",", start, end, "end");
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.focus({ preventScroll: true });
 }
 
 function parseSeparatedValues(input) {

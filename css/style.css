@@ -1565,3 +1565,11 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
 body.reference-longpress-fullscreen .reference-image-sticky.has-images .reference-preview:not(.active-reference){display:none!important}
 body.reference-longpress-fullscreen .reference-preview-controls{display:none!important}
 body.reference-longpress-fullscreen .reference-image-sticky.has-images .reference-preview img{width:100%;height:100%!important;object-fit:contain}
+
+
+/* Ver1.3.9: クラブID一括入力用カンマボタン */
+.quick-value-input-row{display:flex;gap:8px;align-items:stretch}
+.quick-value-input-row #quickValue{flex:1;min-width:0}
+.quick-comma-button{width:52px;min-height:42px;border:1px solid #2e7d32;border-radius:11px;background:#fff;color:#2e7d32;font-size:26px;font-weight:800;line-height:1;touch-action:manipulation}
+.quick-comma-button:active{background:#e7f3e8;transform:scale(.97)}
+.quick-comma-button[hidden]{display:none!important}
