@@ -1520,3 +1520,48 @@ body.reference-viewer-open{overflow:auto!important;touch-action:auto!important}
     padding-top:var(--reference-content-offset) !important;
   }
 }
+
+/* Ver1.3.8: ピンチ・ドラッグ・ダブルタップ・長押し全画面 */
+.reference-image-sticky.has-images,
+.reference-image-sticky.has-images .reference-preview,
+.reference-image-sticky.has-images .reference-preview img{
+  touch-action:none!important;
+  overscroll-behavior:contain;
+  -webkit-user-drag:none;
+  -webkit-touch-callout:none;
+  user-select:none;
+}
+.reference-image-sticky.has-images .reference-preview{overflow:hidden;cursor:zoom-in}
+.reference-image-sticky.has-images .reference-preview.is-zoomed{cursor:grab}
+.reference-image-sticky.has-images .reference-preview.is-zoomed:active{cursor:grabbing}
+.reference-image-sticky.has-images .reference-preview img{
+  transform-origin:center center;
+  will-change:transform;
+  transition:transform .16s ease-out;
+  pointer-events:none;
+}
+.reference-image-sticky.has-images .reference-preview.is-zoomed img{transition:none}
+.reference-preview-controls b{font-size:11px;min-width:38px;text-align:center;color:#fff}
+body.reference-preview-enlarged .reference-image-sticky.has-images .reference-preview-controls{pointer-events:none}
+body.reference-preview-enlarged .reference-image-sticky.has-images .reference-preview-controls button{pointer-events:auto}
+body.reference-longpress-fullscreen{overflow:hidden!important}
+body.reference-longpress-fullscreen .reference-image-sticky.has-images{
+  position:fixed!important;
+  inset:0!important;
+  top:0!important;
+  width:100vw!important;
+  height:100dvh!important;
+  max-height:none!important;
+  z-index:500!important;
+  border:0!important;
+  border-radius:0!important;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)!important;
+  margin:0!important;
+  background:#000!important;
+}
+body.reference-longpress-fullscreen .reference-image-sticky.has-images .reference-preview.active-reference{
+  width:100%;height:100%;display:block!important;
+}
+body.reference-longpress-fullscreen .reference-image-sticky.has-images .reference-preview:not(.active-reference){display:none!important}
+body.reference-longpress-fullscreen .reference-preview-controls{display:none!important}
+body.reference-longpress-fullscreen .reference-image-sticky.has-images .reference-preview img{width:100%;height:100%!important;object-fit:contain}

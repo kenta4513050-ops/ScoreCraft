@@ -459,3 +459,233 @@ function setMessage(message, error) { const element = document.getElementById("i
 function resetForm() { if (confirm("入力内容をリセットしますか？")) location.reload(); }
 
 document.addEventListener("DOMContentLoaded", init);
+
+/* Ver1.3.8: 高機能固定参考画像ビューア */
+const referenceViewerState = {
+  activeIndex: 0,
+  transforms: [],
+  pointers: new Map(),
+  gestureStart: null,
+  longPressTimer: null,
+  longPressActive: false,
+  lastTapAt: 0,
+  lastTapIndex: -1,
+  suppressClickUntil: 0
+};
+
+function defaultReferenceTransform() {
+  return { scale: 1, x: 0, y: 0 };
+}
+
+function getReferenceFigures() {
+  return Array.from(document.querySelectorAll("#imagePreviewList .reference-preview"));
+}
+
+function getReferenceTransform(index) {
+  if (!referenceViewerState.transforms[index]) referenceViewerState.transforms[index] = defaultReferenceTransform();
+  return referenceViewerState.transforms[index];
+}
+
+function clampReferenceTransform(index) {
+  const figure = getReferenceFigures()[index];
+  const image = figure?.querySelector("img");
+  if (!figure || !image) return;
+  const t = getReferenceTransform(index);
+  t.scale = Math.min(6, Math.max(1, t.scale));
+  if (t.scale <= 1.001) {
+    t.scale = 1; t.x = 0; t.y = 0;
+    return;
+  }
+  const rect = figure.getBoundingClientRect();
+  const maxX = Math.max(0, rect.width * (t.scale - 1) / 2);
+  const maxY = Math.max(0, rect.height * (t.scale - 1) / 2);
+  t.x = Math.min(maxX, Math.max(-maxX, t.x));
+  t.y = Math.min(maxY, Math.max(-maxY, t.y));
+}
+
+function applyReferenceTransform(index) {
+  clampReferenceTransform(index);
+  const figure = getReferenceFigures()[index];
+  const image = figure?.querySelector("img");
+  if (!image) return;
+  const t = getReferenceTransform(index);
+  image.style.transform = `translate3d(${t.x}px, ${t.y}px, 0) scale(${t.scale})`;
+  figure.classList.toggle("is-zoomed", t.scale > 1.001);
+  const zoomLabel = document.getElementById("referenceZoomLabel");
+  if (zoomLabel && index === referenceViewerState.activeIndex) zoomLabel.textContent = `${Math.round(t.scale * 100)}%`;
+}
+
+function selectReferenceImage(index, enlarge = true) {
+  const figures = getReferenceFigures();
+  if (!figures[index]) return;
+  referenceViewerState.activeIndex = index;
+  enlargedReferenceIndex = index;
+  document.body.classList.toggle("reference-preview-enlarged", enlarge);
+  figures.forEach((figure, i) => figure.classList.toggle("active-reference", i === index));
+  applyReferenceTransform(index);
+  updateReferenceViewportMetrics();
+}
+
+function resetReferenceViewerState(count) {
+  referenceViewerState.activeIndex = 0;
+  referenceViewerState.transforms = Array.from({ length: count }, defaultReferenceTransform);
+  referenceViewerState.pointers.clear();
+  referenceViewerState.gestureStart = null;
+  clearTimeout(referenceViewerState.longPressTimer);
+  referenceViewerState.longPressActive = false;
+  document.body.classList.remove("reference-longpress-fullscreen");
+}
+
+function distanceBetweenPointers(points) {
+  return Math.hypot(points[1].clientX - points[0].clientX, points[1].clientY - points[0].clientY);
+}
+
+function midpointBetweenPointers(points) {
+  return { x: (points[0].clientX + points[1].clientX) / 2, y: (points[0].clientY + points[1].clientY) / 2 };
+}
+
+function cancelReferenceLongPress() {
+  clearTimeout(referenceViewerState.longPressTimer);
+  referenceViewerState.longPressTimer = null;
+}
+
+function beginReferenceLongPress(index) {
+  cancelReferenceLongPress();
+  referenceViewerState.longPressTimer = window.setTimeout(() => {
+    if (referenceViewerState.pointers.size !== 1) return;
+    referenceViewerState.longPressActive = true;
+    referenceViewerState.suppressClickUntil = Date.now() + 500;
+    selectReferenceImage(index, true);
+    document.body.classList.add("reference-longpress-fullscreen");
+  }, 520);
+}
+
+function endReferenceLongPress() {
+  cancelReferenceLongPress();
+  if (!referenceViewerState.longPressActive) return;
+  referenceViewerState.longPressActive = false;
+  document.body.classList.remove("reference-longpress-fullscreen");
+  updateReferenceViewportMetrics();
+}
+
+function onReferencePointerDown(event, index) {
+  event.preventDefault();
+  const figure = event.currentTarget;
+  figure.setPointerCapture?.(event.pointerId);
+  referenceViewerState.pointers.set(event.pointerId, event);
+  selectReferenceImage(index, document.body.classList.contains("reference-preview-enlarged"));
+  const t = getReferenceTransform(index);
+  referenceViewerState.gestureStart = {
+    index,
+    x: event.clientX,
+    y: event.clientY,
+    transform: { ...t },
+    moved: false
+  };
+  if (referenceViewerState.pointers.size === 1) beginReferenceLongPress(index);
+  if (referenceViewerState.pointers.size === 2) {
+    cancelReferenceLongPress();
+    const points = Array.from(referenceViewerState.pointers.values());
+    referenceViewerState.gestureStart.distance = distanceBetweenPointers(points);
+    referenceViewerState.gestureStart.midpoint = midpointBetweenPointers(points);
+  }
+}
+
+function onReferencePointerMove(event, index) {
+  if (!referenceViewerState.pointers.has(event.pointerId)) return;
+  event.preventDefault();
+  referenceViewerState.pointers.set(event.pointerId, event);
+  const start = referenceViewerState.gestureStart;
+  if (!start || start.index !== index) return;
+  const t = getReferenceTransform(index);
+  const points = Array.from(referenceViewerState.pointers.values());
+  if (points.length >= 2) {
+    cancelReferenceLongPress();
+    const dist = distanceBetweenPointers(points);
+    const midpoint = midpointBetweenPointers(points);
+    t.scale = start.transform.scale * (dist / Math.max(1, start.distance));
+    t.x = start.transform.x + (midpoint.x - start.midpoint.x);
+    t.y = start.transform.y + (midpoint.y - start.midpoint.y);
+    start.moved = true;
+  } else if (points.length === 1) {
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.hypot(dx, dy) > 7) { start.moved = true; cancelReferenceLongPress(); }
+    if (start.transform.scale > 1.001) {
+      t.x = start.transform.x + dx;
+      t.y = start.transform.y + dy;
+    }
+  }
+  applyReferenceTransform(index);
+}
+
+function onReferencePointerEnd(event, index) {
+  if (!referenceViewerState.pointers.has(event.pointerId)) return;
+  event.preventDefault();
+  const start = referenceViewerState.gestureStart;
+  referenceViewerState.pointers.delete(event.pointerId);
+  endReferenceLongPress();
+  applyReferenceTransform(index);
+  if (referenceViewerState.pointers.size) {
+    const remaining = Array.from(referenceViewerState.pointers.values())[0];
+    const t = getReferenceTransform(index);
+    referenceViewerState.gestureStart = { index, x: remaining.clientX, y: remaining.clientY, transform: { ...t }, moved: true };
+    return;
+  }
+  if (start && !start.moved && Date.now() >= referenceViewerState.suppressClickUntil) {
+    const now = Date.now();
+    if (referenceViewerState.lastTapIndex === index && now - referenceViewerState.lastTapAt < 330) {
+      const t = getReferenceTransform(index);
+      t.scale = t.scale > 1.15 ? 1 : 2;
+      t.x = 0; t.y = 0;
+      selectReferenceImage(index, true);
+      applyReferenceTransform(index);
+      referenceViewerState.lastTapAt = 0;
+    } else {
+      referenceViewerState.lastTapAt = now;
+      referenceViewerState.lastTapIndex = index;
+      selectReferenceImage(index, true);
+    }
+  }
+  referenceViewerState.gestureStart = null;
+}
+
+function installReferenceGestures() {
+  const figures = getReferenceFigures();
+  resetReferenceViewerState(figures.length);
+  figures.forEach((figure, index) => {
+    const image = figure.querySelector("img");
+    image?.replaceWith(image.cloneNode(true));
+    figure.addEventListener("pointerdown", event => onReferencePointerDown(event, index), { passive: false });
+    figure.addEventListener("pointermove", event => onReferencePointerMove(event, index), { passive: false });
+    figure.addEventListener("pointerup", event => onReferencePointerEnd(event, index), { passive: false });
+    figure.addEventListener("pointercancel", event => onReferencePointerEnd(event, index), { passive: false });
+    figure.addEventListener("contextmenu", event => event.preventDefault());
+  });
+  selectReferenceImage(0, false);
+}
+
+const originalHandleImagesV138 = handleImages;
+handleImages = function(event) {
+  originalHandleImagesV138(event);
+  if ((event.target.files || []).length) installReferenceGestures();
+};
+
+const originalEnsureReferenceControlsV138 = ensureReferenceControls;
+ensureReferenceControls = function() {
+  originalEnsureReferenceControlsV138();
+  const controls = document.getElementById("referencePreviewControls");
+  if (!controls || document.getElementById("referenceZoomLabel")) return;
+  const label = controls.querySelector("span");
+  if (label) label.textContent = "タップで固定・長押しで一時全画面";
+  const zoom = document.createElement("b");
+  zoom.id = "referenceZoomLabel";
+  zoom.textContent = "100%";
+  controls.insertBefore(zoom, controls.querySelector("button"));
+};
+
+const originalShrinkDockedReferenceImageV138 = shrinkDockedReferenceImage;
+shrinkDockedReferenceImage = function() {
+  originalShrinkDockedReferenceImageV138();
+  document.body.classList.remove("reference-longpress-fullscreen");
+};
