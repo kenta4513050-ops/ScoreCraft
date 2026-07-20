@@ -20,6 +20,23 @@ const CLUB_CATALOG = [
   ["putter", "Putter"]
 ].map(([id, name]) => ({ id, name }));
 
+
+const DIRECTION_ID_MAP = {
+  "1": "keep",
+  "2": "right",
+  "3": "left",
+  "4": "short",
+  "5": "over"
+};
+
+const DIRECTION_ID_LABELS = [
+  ["1", "FWキープ / 1on"],
+  ["2", "→"],
+  ["3", "←"],
+  ["4", "手前"],
+  ["5", "オーバー"]
+];
+
 function buildClubCatalog() {
   const catalog = new Map(CLUB_CATALOG.map(club => [String(club.id), club]));
   // clubs.jsを読み込んでいない画面でも動作し、読み込まれている場合は全定義を優先する。
@@ -59,9 +76,22 @@ function getClubByNumber(value) {
   return Number.isInteger(number) ? state.myClubs.find(club => club.number === number) || null : null;
 }
 
-function renderClubIdGuide() {
+function renderQuickIdGuide(field = document.getElementById("quickField")?.value) {
   const guide = document.getElementById("clubIdGuide");
   if (!guide) return;
+
+  if (field === "direction") {
+    guide.classList.remove("empty");
+    guide.innerHTML = `<strong>ティーショット方向ID表</strong><div>${DIRECTION_ID_LABELS.map(([id, label]) => `<span><b>${id}</b>${escapeHtml(label)}</span>`).join("")}</div>`;
+    return;
+  }
+
+  if (field !== "teeClub") {
+    guide.innerHTML = "";
+    guide.classList.remove("empty");
+    return;
+  }
+
   if (!state.myClubs.length) {
     guide.innerHTML = `<strong>クラブID表</strong><span>マイクラブが未登録です。<a href="myclubs.html">設定する</a></span>`;
     guide.classList.add("empty");
@@ -70,6 +100,7 @@ function renderClubIdGuide() {
   guide.classList.remove("empty");
   guide.innerHTML = `<strong>クラブID表（登録順・${state.myClubs.length}本）</strong><div>${state.myClubs.map(club => `<span><b>${club.number}</b>${escapeHtml(club.name)}</span>`).join("")}</div>`;
 }
+
 
 const MODE_LABELS = {
   simple: "スコアとパットを入力します。",
@@ -103,7 +134,7 @@ function init() {
   document.getElementById("roundDate").value = new Date().toISOString().slice(0, 10);
   bindEvents();
   renderMode();
-  renderClubIdGuide();
+  renderQuickIdGuide();
   renderTable();
   updateSummary();
   updateCourseNotice();
@@ -317,6 +348,10 @@ function updateQuickEntryGuide() {
     input.inputMode = "numeric";
     input.placeholder = "例：1,9,1,4,1,8,1,1,1";
     guide.textContent = "マイクラブのIDをカンマで9個入力します。下のクラブID表を確認してください。";
+  } else if (field === "direction") {
+    input.inputMode = "numeric";
+    input.placeholder = "例：123214315";
+    guide.textContent = "ティーショット方向IDを区切らず9桁で入力します。下の方向ID表を確認してください。";
   } else {
     input.inputMode = "numeric";
     input.placeholder = "例：434543445";
@@ -324,6 +359,7 @@ function updateQuickEntryGuide() {
   }
   const commaButton = document.getElementById("insertCommaButton");
   if (commaButton) commaButton.hidden = field !== "teeClub";
+  renderQuickIdGuide(field);
 }
 
 function insertQuickEntryComma() {
@@ -380,6 +416,11 @@ function applyQuickEntry() {
     if (malformedIndex >= 0) return setMessage(`${malformedIndex + 1}個目のクラブID「${values[malformedIndex]}」が正しくありません。`, true);
     const invalidIndex = values.findIndex(value => !getClubByNumber(value));
     if (invalidIndex >= 0) return setMessage(`${invalidIndex + 1}個目のクラブID「${values[invalidIndex]}」はマイクラブにありません。ID表を確認してください。`, true);
+  } else if (field === "direction") {
+    if (!input) return setMessage("ティーショット方向IDを入力してください。", true);
+    if (!/^[1-5]+$/.test(input)) return setMessage("ティーショット方向IDは1～5の数字だけで入力してください。", true);
+    if (input.length !== 9) return setMessage(`ティーショット方向IDは9個必要です。現在は${input.length}個です。`, true);
+    values = [...input].map(id => DIRECTION_ID_MAP[id]);
   } else {
     const result = validateQuickNumeric(field, input);
     if (result.error) return setMessage(result.error, true);
@@ -450,7 +491,7 @@ function savePastRound() {
     outPar: sumRange("par", 0, 9), inPar: sumRange("par", 9, 18), totalPar: sum("par"),
     teeName: document.getElementById("teeName").value.trim(),
     greenName: document.getElementById("greenName").value.trim(),
-    importSource: "past-round-manual-v1.3.3", createdAt: now, updatedAt: now
+    importSource: "past-round-manual-v1.3.10", createdAt: now, updatedAt: now
   };
 
   if (document.getElementById("saveCourseCheck").checked && typeof ensureCourseFromRound === "function") {
