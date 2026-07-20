@@ -137,8 +137,115 @@ function handleImages(event) {
     const figure = document.createElement("figure");
     figure.className = "import-image-preview reference-preview";
     figure.innerHTML = `<img src="${url}" alt="参考画像${index + 1}"><span>画像 ${index + 1}</span>`;
-    figure.querySelector("img").addEventListener("click", () => figure.classList.toggle("expanded"));
+    figure.querySelector("img").addEventListener("click", () => openReferenceViewer(url, `画像 ${index + 1}`));
     container.appendChild(figure);
+  });
+}
+
+function ensureReferenceViewer() {
+  let viewer = document.getElementById("referenceImageViewer");
+  if (viewer) return viewer;
+  viewer = document.createElement("div");
+  viewer.id = "referenceImageViewer";
+  viewer.className = "reference-image-viewer";
+  viewer.setAttribute("aria-hidden", "true");
+  viewer.innerHTML = `
+    <div class="reference-viewer-toolbar">
+      <strong id="referenceViewerTitle">参考画像</strong>
+      <span>ピンチで拡大・ドラッグで移動</span>
+      <button id="referenceViewerClose" type="button" aria-label="画像を閉じる">×</button>
+    </div>
+    <div id="referenceViewerStage" class="reference-viewer-stage">
+      <img id="referenceViewerImage" alt="拡大した参考画像">
+    </div>`;
+  document.body.appendChild(viewer);
+  document.getElementById("referenceViewerClose").addEventListener("click", closeReferenceViewer);
+  viewer.addEventListener("click", event => { if (event.target === viewer) closeReferenceViewer(); });
+  bindReferenceViewerGestures();
+  return viewer;
+}
+
+let viewerScale = 1;
+let viewerX = 0;
+let viewerY = 0;
+let viewerStartX = 0;
+let viewerStartY = 0;
+let viewerStartDistance = 0;
+let viewerStartScale = 1;
+let viewerDragging = false;
+
+function applyViewerTransform() {
+  const image = document.getElementById("referenceViewerImage");
+  if (!image) return;
+  image.style.transform = `translate3d(${viewerX}px, ${viewerY}px, 0) scale(${viewerScale})`;
+}
+
+function resetViewerTransform() {
+  viewerScale = 1;
+  viewerX = 0;
+  viewerY = 0;
+  applyViewerTransform();
+}
+
+function openReferenceViewer(url, title) {
+  const viewer = ensureReferenceViewer();
+  const image = document.getElementById("referenceViewerImage");
+  document.getElementById("referenceViewerTitle").textContent = title || "参考画像";
+  image.src = url;
+  resetViewerTransform();
+  viewer.classList.add("open");
+  viewer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("reference-viewer-open");
+}
+
+function closeReferenceViewer() {
+  const viewer = document.getElementById("referenceImageViewer");
+  if (!viewer) return;
+  viewer.classList.remove("open");
+  viewer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("reference-viewer-open");
+  resetViewerTransform();
+}
+
+function touchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function bindReferenceViewerGestures() {
+  const stage = document.getElementById("referenceViewerStage");
+  const image = document.getElementById("referenceViewerImage");
+  stage.addEventListener("touchstart", event => {
+    if (event.touches.length === 2) {
+      viewerStartDistance = touchDistance(event.touches);
+      viewerStartScale = viewerScale;
+      viewerDragging = false;
+    } else if (event.touches.length === 1) {
+      viewerStartX = event.touches[0].clientX - viewerX;
+      viewerStartY = event.touches[0].clientY - viewerY;
+      viewerDragging = true;
+    }
+  }, { passive: false });
+  stage.addEventListener("touchmove", event => {
+    event.preventDefault();
+    if (event.touches.length === 2 && viewerStartDistance) {
+      viewerScale = Math.min(5, Math.max(1, viewerStartScale * touchDistance(event.touches) / viewerStartDistance));
+      if (viewerScale === 1) { viewerX = 0; viewerY = 0; }
+      applyViewerTransform();
+    } else if (event.touches.length === 1 && viewerDragging && viewerScale > 1) {
+      viewerX = event.touches[0].clientX - viewerStartX;
+      viewerY = event.touches[0].clientY - viewerStartY;
+      applyViewerTransform();
+    }
+  }, { passive: false });
+  stage.addEventListener("touchend", event => {
+    if (event.touches.length < 2) viewerStartDistance = 0;
+    if (event.touches.length === 0) viewerDragging = false;
+  });
+  image.addEventListener("dblclick", () => {
+    if (viewerScale > 1) resetViewerTransform();
+    else { viewerScale = 2; applyViewerTransform(); }
   });
 }
 
