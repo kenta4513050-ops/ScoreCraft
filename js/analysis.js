@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.14 - analysis.js
+// ScoreCraft Ver1.3.15 - analysis.js
 // ============================================
 "use strict";
 
@@ -189,11 +189,17 @@ function renderScoreChart(){
     c.fillStyle="#2367d7"; c.textAlign="left"; c.fillText("パット",plotRight+3,top-6);
     c.fillStyle="#f26a13"; c.textAlign="right"; c.fillText("距離",width-1,top-6);
 
-    // スコアは棒グラフ
+    // データ点を左右の縦軸から内側へ寄せ、軸・目盛りとの重なりを防ぐ。
     const slot=plotW/Math.max(rounds.length,1),barW=Math.max(10,Math.min(34,slot*0.55));
+    const edgeInset=Math.max(barW/2+6,compact?14:18);
+    const dataLeft=left+edgeInset;
+    const dataPlotW=Math.max(1,plotW-edgeInset*2);
+    const getDataX=i=>rounds.length===1?left+plotW/2:dataLeft+dataPlotW*i/(rounds.length-1);
+
+    // スコアは棒グラフ
     scores.forEach((v,i)=>{
         if(!Number.isFinite(v))return;
-        const x=rounds.length===1?left+plotW/2:left+plotW*i/(rounds.length-1);
+        const x=getDataX(i);
         const y=top+(scoreScale.max-v)/(scoreScale.max-scoreScale.min)*plotH;
         const base=top+plotH,h=Math.max(1,base-y);
         const grad=c.createLinearGradient(0,y,0,base); grad.addColorStop(0,"#58b54d"); grad.addColorStop(1,"#2f8c32");
@@ -202,11 +208,11 @@ function renderScoreChart(){
     });
 
     // パット数と平均パット距離は折れ線
-    drawLineSeries(c,putts,puttScale,"#2367d7",left,top,plotW,plotH,rounds.length,0,true,valueFont);
-    drawLineSeries(c,distances,distanceScale,"#f26a13",left,top,plotW,plotH,rounds.length,1,true,valueFont);
+    drawLineSeries(c,putts,puttScale,"#2367d7",dataLeft,top,dataPlotW,plotH,rounds.length,0,true,valueFont);
+    drawLineSeries(c,distances,distanceScale,"#f26a13",dataLeft,top,dataPlotW,plotH,rounds.length,1,true,valueFont);
 
     c.fillStyle="#5f6c64"; c.font=`${labelFont}px "Yu Gothic UI",sans-serif`; c.textAlign="center"; c.textBaseline="top";
-    rounds.forEach((r,i)=>{const x=rounds.length===1?left+plotW/2:left+plotW*i/(rounds.length-1);c.fillText(formatChartDate(r.date),x,top+plotH+8);});
+    rounds.forEach((r,i)=>{const x=getDataX(i);c.fillText(formatChartDate(r.date),x,top+plotH+8);});
     c.fillStyle="#526058"; c.font=`${compact?8:10}px "Yu Gothic UI",sans-serif`; c.fillText("ラウンド",left+plotW/2,height-13);
 }
 
