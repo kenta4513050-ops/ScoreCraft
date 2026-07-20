@@ -20,18 +20,43 @@ const CLUB_CATALOG = [
   ["putter", "Putter"]
 ].map(([id, name]) => ({ id, name }));
 
+function buildClubCatalog() {
+  const catalog = new Map(CLUB_CATALOG.map(club => [String(club.id), club]));
+  // clubs.jsを読み込んでいない画面でも動作し、読み込まれている場合は全定義を優先する。
+  if (typeof CLUBS !== "undefined" && Array.isArray(CLUBS)) {
+    CLUBS.forEach(group => (group.clubs || []).forEach(club => {
+      if (club && club.id) catalog.set(String(club.id), { id: String(club.id), name: String(club.name || club.id) });
+    }));
+  }
+  return catalog;
+}
+
+function inferClubName(id) {
+  const value = String(id || "").trim();
+  if (!value) return "未設定";
+  if (/^\d{2}$/.test(value)) return `${value}°`;
+  return value.toUpperCase().replace("DRIVER", "Driver").replace("PUTTER", "Putter");
+}
+
 function loadClubIdMap() {
   const selected = typeof getMyClubs === "function" ? getMyClubs() : [];
-  const catalog = new Map(CLUB_CATALOG.map(club => [club.id, club]));
-  state.myClubs = selected.map((clubId, index) => {
-    const club = catalog.get(clubId);
-    return club ? { number: index + 1, ...club } : null;
-  }).filter(Boolean);
+  const catalog = buildClubCatalog();
+  // 保存形式がID配列でもオブジェクト配列でも、登録された本数を欠かさず表示する。
+  state.myClubs = (Array.isArray(selected) ? selected : []).map((entry, index) => {
+    const id = String(typeof entry === "object" && entry !== null ? (entry.id ?? entry.clubId ?? entry.value ?? "") : entry).trim();
+    const savedName = typeof entry === "object" && entry !== null ? (entry.name ?? entry.clubName ?? entry.label) : "";
+    const club = catalog.get(id);
+    return {
+      number: index + 1,
+      id,
+      name: String(savedName || club?.name || inferClubName(id))
+    };
+  });
 }
 
 function getClubByNumber(value) {
   const number = Number(value);
-  return state.myClubs.find(club => club.number === number) || null;
+  return Number.isInteger(number) ? state.myClubs.find(club => club.number === number) || null : null;
 }
 
 function renderClubIdGuide() {
@@ -43,7 +68,7 @@ function renderClubIdGuide() {
     return;
   }
   guide.classList.remove("empty");
-  guide.innerHTML = `<strong>クラブID表</strong><div>${state.myClubs.map(club => `<span><b>${club.number}</b>${escapeHtml(club.name)}</span>`).join("")}</div>`;
+  guide.innerHTML = `<strong>クラブID表（登録順・${state.myClubs.length}本）</strong><div>${state.myClubs.map(club => `<span><b>${club.number}</b>${escapeHtml(club.name)}</span>`).join("")}</div>`;
 }
 
 const MODE_LABELS = {
@@ -156,7 +181,9 @@ function fieldHtml(hole, key) {
   }
   const value = escapeHtml(hole[key] || "");
   if (key === "teeClub") {
-    return `<input ${common} class="compact-text club-number-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="番号" value="${value}">`;
+    const club = getClubByNumber(value);
+    const clubName = value ? (club?.name || "未登録ID") : "－";
+    return `<div class="club-entry-cell"><input ${common} class="compact-text club-number-input${value && !club ? " invalid" : ""}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="ID" value="${value}"><small class="club-name-preview">${escapeHtml(clubName)}</small></div>`;
   }
   return `<input ${common} class="compact-text" type="text" value="${value}">`;
 }
@@ -166,6 +193,13 @@ function handleFieldInput(event) {
   const field = event.target.dataset.field;
   if (["par", "score", "putts", "greenDistance", "bunker", "ob", "onePenalty"].includes(field)) {
     hole[field] = event.target.value === "" ? null : Number(event.target.value);
+  } else if (field === "teeClub") {
+    const raw = event.target.value.trim();
+    hole[field] = raw;
+    const club = raw ? getClubByNumber(raw) : null;
+    event.target.classList.toggle("invalid", Boolean(raw && !club));
+    const preview = event.target.parentElement?.querySelector(".club-name-preview");
+    if (preview) preview.textContent = raw ? (club?.name || "未登録ID") : "－";
   } else {
     hole[field] = event.target.value;
   }
@@ -188,6 +222,29 @@ function updateQuickEntryGuide() {
   }
 }
 
+function parseSeparatedValues(input) {
+  return input.split(/[、,\s/]+/).map(value => value.trim()).filter(Boolean);
+}
+
+function validateQuickNumeric(field, input) {
+  const labels = { par: "PAR", score: "スコア", putts: "パット", ob: "OB", onePenalty: "1ペナ", bunker: "バンカー" };
+  const ranges = { par: [3, 6], score: [1, 19], putts: [0, 9], ob: [0, 9], onePenalty: [0, 9], bunker: [0, 9] };
+  if (!input) return { error: `${labels[field]}を入力してください。` };
+  if (!/^[0-9、,\s/]+$/.test(input)) return { error: `${labels[field]}には数字と区切り記号だけを入力してください。` };
+
+  const hasSeparator = /[、,\s/]/.test(input);
+  const values = hasSeparator ? parseSeparatedValues(input) : [...input];
+  if (values.length > 9) return { error: `${labels[field]}が${values.length}個あります。前半または後半の9個以内で入力してください。` };
+  if (values.length < 9) return { error: `${labels[field]}は9個必要です。現在は${values.length}個です。` };
+  if (values.some(value => !/^\d{1,2}$/.test(value))) return { error: `${labels[field]}に正しくない値があります。各値を数字で入力してください。` };
+
+  const numbers = values.map(Number);
+  const [min, max] = ranges[field];
+  const badIndex = numbers.findIndex(value => value < min || value > max);
+  if (badIndex >= 0) return { error: `${badIndex + 1}個目の${labels[field]}「${numbers[badIndex]}」は範囲外です（${min}～${max}）。` };
+  return { values: numbers };
+}
+
 function applyQuickEntry() {
   const field = document.getElementById("quickField").value;
   if (field !== "par" && !state.enabled[field]) {
@@ -197,26 +254,24 @@ function applyQuickEntry() {
   const input = document.getElementById("quickValue").value.trim();
   const start = document.getElementById("quickHalf").value === "front" ? 0 : 9;
 
+  let values;
   if (field === "teeClub") {
-    const values = input.split(/[、,\s/]+/).map(value => value.trim()).filter(Boolean);
-    if (values.length !== 9 || values.some(value => !/^\d{1,3}$/.test(value))) {
-      setMessage("クラブIDを9個、カンマまたは空白で区切って入力してください。", true);
-      return;
-    }
-    const invalid = values.find(value => !getClubByNumber(value));
-    if (invalid) {
-      setMessage(`クラブID「${invalid}」はマイクラブにありません。クラブID表を確認してください。`, true);
-      return;
-    }
-    values.forEach((value, index) => { state.holes[start + index][field] = value; });
+    if (!input) return setMessage("クラブIDを入力してください。", true);
+    if (!/^[0-9、,\s/]+$/.test(input)) return setMessage("クラブIDには数字と区切り記号だけを入力してください。", true);
+    values = parseSeparatedValues(input);
+    if (values.length > 9) return setMessage(`クラブIDが${values.length}個あります。前半または後半の9個以内で入力してください。`, true);
+    if (values.length < 9) return setMessage(`クラブIDは9個必要です。現在は${values.length}個です。`, true);
+    const malformedIndex = values.findIndex(value => !/^\d{1,3}$/.test(value));
+    if (malformedIndex >= 0) return setMessage(`${malformedIndex + 1}個目のクラブID「${values[malformedIndex]}」が正しくありません。`, true);
+    const invalidIndex = values.findIndex(value => !getClubByNumber(value));
+    if (invalidIndex >= 0) return setMessage(`${invalidIndex + 1}個目のクラブID「${values[invalidIndex]}」はマイクラブにありません。ID表を確認してください。`, true);
   } else {
-    const raw = input.replace(/[^0-9]/g, "");
-    if (raw.length !== 9) {
-      setMessage("9ホール分の数字を9桁で入力してください。", true);
-      return;
-    }
-    [...raw].forEach((char, index) => { state.holes[start + index][field] = Number(char); });
+    const result = validateQuickNumeric(field, input);
+    if (result.error) return setMessage(result.error, true);
+    values = result.values;
   }
+
+  values.forEach((value, index) => { state.holes[start + index][field] = value; });
   document.getElementById("quickValue").value = "";
   renderTable();
   updateSummary();
@@ -245,6 +300,10 @@ function savePastRound() {
   if (!date || !courseName) return setMessage("ラウンド日とゴルフ場名を入力してください。", true);
   if (!state.holes.every(hole => Number.isFinite(hole.score))) {
     if (!confirm("スコアが未入力のホールがあります。このまま保存しますか？")) return;
+  }
+  if (state.enabled.teeClub) {
+    const invalidHole = state.holes.find(hole => hole.teeClub && !getClubByNumber(hole.teeClub));
+    if (invalidHole) return setMessage(`${invalidHole.hole}番ホールのクラブID「${invalidHole.teeClub}」はマイクラブにありません。`, true);
   }
   const frontCourse = document.getElementById("frontCourse").value.trim();
   const backCourse = document.getElementById("backCourse").value.trim();
@@ -276,7 +335,7 @@ function savePastRound() {
     outPar: sumRange("par", 0, 9), inPar: sumRange("par", 9, 18), totalPar: sum("par"),
     teeName: document.getElementById("teeName").value.trim(),
     greenName: document.getElementById("greenName").value.trim(),
-    importSource: "past-round-manual-v1.3.2", createdAt: now, updatedAt: now
+    importSource: "past-round-manual-v1.3.3", createdAt: now, updatedAt: now
   };
 
   if (document.getElementById("saveCourseCheck").checked && typeof ensureCourseFromRound === "function") {
