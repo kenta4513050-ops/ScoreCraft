@@ -1653,3 +1653,84 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
   .hole-progress-button{max-width:24px}.save-section{margin-top:8px}.round-save-actions .primary-button,.round-save-actions .secondary-button{min-height:42px;font-size:13px}
 }
 @media(max-width:370px){.compact-primary-grid{grid-template-columns:.62fr 1.19fr 1.19fr}.compact-three-grid{grid-template-columns:1.12fr .88fr .88fr;gap:4px}.compact-input-section{padding-left:5px;padding-right:5px}.compact-field>label{font-size:8px}.compact-penalty-grid{gap:3px}.compact-counter-item{grid-template-columns:1fr}.compact-counter-item>span{text-align:center}.hole-progress-button{max-width:21px;font-size:8px}}
+
+/* ==========================================
+   ScoreCraft Ver1.3.18 Alignment + Guided Flick
+========================================== */
+.compact-primary-grid,
+.compact-three-grid{
+  align-items:end;
+}
+.compact-field{
+  display:grid;
+  grid-template-rows:14px 36px;
+  align-content:end;
+}
+.compact-field>label{
+  height:14px;
+  line-height:11px;
+  margin:0;
+  display:flex;
+  align-items:flex-start;
+}
+.compact-field select,
+.compact-field input,
+.compact-stepper,
+.flick-control,
+.compact-gir-button{
+  box-sizing:border-box;
+  align-self:end;
+  margin:0;
+  height:36px;
+  min-height:36px;
+}
+.compact-step-field .compact-stepper{width:100%}
+.compact-gir-button{display:grid;place-items:center;padding:0 5px;line-height:1}
+.flick-control{position:relative;display:grid;place-items:center;padding:0 5px;line-height:1}
+.flick-control.flick-longpress{transform:scale(.98);box-shadow:0 0 0 3px rgba(46,125,50,.12)}
+
+.flick-radial-layer{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  pointer-events:none;
+  background:rgba(16,31,19,.06);
+  -webkit-backdrop-filter:blur(1px);
+  backdrop-filter:blur(1px);
+}
+.flick-radial-menu{
+  position:fixed;
+  width:1px;
+  height:1px;
+}
+.flick-radial-option{
+  position:absolute;
+  display:grid;
+  place-items:center;
+  width:48px;
+  height:48px;
+  margin:-24px 0 0 -24px;
+  border:2px solid #9bc8a2;
+  border-radius:50%;
+  background:rgba(255,255,255,.97);
+  color:#245b2d;
+  font-size:16px;
+  font-weight:900;
+  box-shadow:0 5px 18px rgba(20,60,30,.16);
+  transition:transform .08s ease,background .08s ease,border-color .08s ease;
+}
+.flick-radial-option.flick-center{transform:translate(0,0)}
+.flick-radial-option.flick-left{transform:translate(-62px,0)}
+.flick-radial-option.flick-right{transform:translate(62px,0)}
+.flick-radial-option.flick-up{transform:translate(0,-62px)}
+.flick-radial-option.flick-down{transform:translate(0,62px)}
+.flick-radial-option.active{
+  background:#2e7d32;
+  border-color:#2e7d32;
+  color:#fff;
+}
+.flick-radial-option.flick-left.active{transform:translate(-62px,0) scale(1.12)}
+.flick-radial-option.flick-right.active{transform:translate(62px,0) scale(1.12)}
+.flick-radial-option.flick-up.active{transform:translate(0,-62px) scale(1.12)}
+.flick-radial-option.flick-down.active{transform:translate(0,62px) scale(1.12)}
+.flick-radial-option.flick-center.active{transform:translate(0,0) scale(1.12)}

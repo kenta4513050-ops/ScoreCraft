@@ -1737,7 +1737,7 @@ function directionDisplay(hole) {
 }
 
 function curveDisplay(hole) {
-    const map={left:"↙",straight:"│",right:"↘"};
+    const map={left:"←",straight:"─",right:"→"};
     return map[hole.teeShot.curve||""]||"─";
 }
 
@@ -1746,36 +1746,111 @@ function markFlickGuideSeen() {
     document.querySelectorAll(".flick-first-guide").forEach(el=>el.remove());
 }
 
-function attachFlickGesture(button, handlers) {
-    let sx=0, sy=0, active=false;
+function removeFlickRadialGuide() {
+    document.querySelectorAll(".flick-radial-layer").forEach(el=>el.remove());
+}
+
+function createFlickRadialGuide(button, options, centerLabel) {
+    removeFlickRadialGuide();
+    const layer=document.createElement("div");
+    layer.className="flick-radial-layer";
+    const menu=document.createElement("div");
+    menu.className="flick-radial-menu";
+
+    const rect=button.getBoundingClientRect();
+    const radius=58;
+    const pad=70;
+    const x=Math.max(pad,Math.min(window.innerWidth-pad,rect.left+rect.width/2));
+    const y=Math.max(pad,Math.min(window.innerHeight-pad,rect.top+rect.height/2));
+    menu.style.left=`${x}px`;
+    menu.style.top=`${y}px`;
+
+    const entries={...options,center:{label:centerLabel}};
+    Object.entries(entries).forEach(([direction,item])=>{
+        if(!item)return;
+        const chip=document.createElement("div");
+        chip.className=`flick-radial-option flick-${direction}`;
+        chip.dataset.direction=direction;
+        chip.textContent=item.label;
+        menu.appendChild(chip);
+    });
+    layer.appendChild(menu);
+    document.body.appendChild(layer);
+    return {layer,menu,x,y,radius};
+}
+
+function setFlickRadialSelection(guide, direction) {
+    if(!guide)return;
+    guide.menu.querySelectorAll(".flick-radial-option").forEach(el=>{
+        el.classList.toggle("active",el.dataset.direction===direction);
+    });
+}
+
+function attachFlickGesture(button, handlers, guideConfig={}) {
+    let sx=0, sy=0, active=false, guide=null, longPressTimer=null, longPressed=false, current="center";
     const threshold=24;
+    const longPressMs=320;
     button.style.touchAction="none";
+
+    const determineDirection=(dx,dy)=>{
+        if(Math.max(Math.abs(dx),Math.abs(dy))<threshold)return "center";
+        if(Math.abs(dx)>=Math.abs(dy))return dx<0?"left":"right";
+        return dy<0?"up":"down";
+    };
+
+    const showGuide=()=>{
+        if(!active)return;
+        longPressed=true;
+        guide=createFlickRadialGuide(button,guideConfig.options||{},guideConfig.centerLabel||"中央");
+        setFlickRadialSelection(guide,"center");
+        button.classList.add("flick-longpress");
+        if(navigator.vibrate) { try{navigator.vibrate(18);}catch(_){} }
+    };
+
+    const cleanup=()=>{
+        clearTimeout(longPressTimer);
+        button.classList.remove("flick-active","flick-longpress");
+        removeFlickRadialGuide();
+        guide=null;
+    };
+
     button.addEventListener("pointerdown", event=>{
-        active=true; sx=event.clientX; sy=event.clientY;
+        active=true; longPressed=false; current="center"; sx=event.clientX; sy=event.clientY;
         button.classList.add("flick-active");
         try{button.setPointerCapture(event.pointerId);}catch(_){}
+        longPressTimer=setTimeout(showGuide,longPressMs);
+        event.preventDefault();
+    });
+    button.addEventListener("pointermove",event=>{
+        if(!active)return;
+        const direction=determineDirection(event.clientX-sx,event.clientY-sy);
+        if(longPressed && direction!==current){
+            current=direction;
+            setFlickRadialSelection(guide,current);
+        }
         event.preventDefault();
     });
     button.addEventListener("pointerup", event=>{
-        if(!active)return; active=false; button.classList.remove("flick-active");
+        if(!active)return;
+        active=false;
+        clearTimeout(longPressTimer);
         const dx=event.clientX-sx, dy=event.clientY-sy;
-        let action="tap";
-        if(Math.max(Math.abs(dx),Math.abs(dy))>=threshold){
-            if(Math.abs(dx)>=Math.abs(dy)) action=dx<0?"left":"right";
-            else action=dy<0?"up":"down";
-        }
+        const direction=determineDirection(dx,dy);
+        const action=direction==="center"?"tap":direction;
+        cleanup();
         if(typeof handlers[action]==="function") handlers[action]();
         markFlickGuideSeen();
         event.preventDefault();
     });
-    button.addEventListener("pointercancel",()=>{active=false;button.classList.remove("flick-active");});
+    button.addEventListener("pointercancel",()=>{active=false;cleanup();});
     button.addEventListener("click",event=>event.preventDefault());
 }
 
 function createDirectionFlickField(hole) {
     const field=document.createElement("div"); field.className="compact-field flick-field"; field.appendChild(createLabel("着弾"));
-    const button=document.createElement("button"); button.type="button"; button.className="flick-control direction-flick"; button.textContent=directionDisplay(hole); button.setAttribute("aria-label","着弾方向。タップで中央、上下左右フリックで方向を選択");
+    const button=document.createElement("button"); button.type="button"; button.className="flick-control direction-flick"; button.textContent=directionDisplay(hole); button.setAttribute("aria-label","着弾方向。長押しすると方向候補を表示し、候補方向へフリックして選択");
     if(hole.teeShot.direction)button.classList.add("selected");
+    const centerLabel=Number(hole.par)===3?"1on":"FW";
     const center=()=>{hole.teeShot.direction=Number(hole.par)===3?"green":"fairway";saveDraftRound();renderCurrentHole();};
     attachFlickGesture(button,{
         tap:center,
@@ -1783,18 +1858,24 @@ function createDirectionFlickField(hole) {
         right:()=>{hole.teeShot.direction="right";saveDraftRound();renderCurrentHole();},
         up:()=>{hole.teeShot.direction="over";saveDraftRound();renderCurrentHole();},
         down:()=>{hole.teeShot.direction="short";saveDraftRound();renderCurrentHole();}
+    },{
+        centerLabel,
+        options:{left:{label:"←"},right:{label:"→"},up:{label:"奥"},down:{label:"手前"}}
     });
     field.appendChild(button); return field;
 }
 
 function createCurveFlickField(hole) {
     const field=document.createElement("div"); field.className="compact-field flick-field"; field.appendChild(createLabel("曲がり"));
-    const button=document.createElement("button"); button.type="button"; button.className="flick-control curve-flick"; button.textContent=curveDisplay(hole); button.setAttribute("aria-label","球筋。タップでまっすぐ、左右フリックで曲がり方向を選択");
+    const button=document.createElement("button"); button.type="button"; button.className="flick-control curve-flick"; button.textContent=curveDisplay(hole); button.setAttribute("aria-label","球筋。長押しすると左右とまっすぐの候補を表示し、候補方向へフリックして選択");
     if(hole.teeShot.curve)button.classList.add("selected");
     attachFlickGesture(button,{
         tap:()=>{hole.teeShot.curve="straight";saveDraftRound();renderCurrentHole();},
         left:()=>{hole.teeShot.curve="left";saveDraftRound();renderCurrentHole();},
         right:()=>{hole.teeShot.curve="right";saveDraftRound();renderCurrentHole();}
+    },{
+        centerLabel:"直",
+        options:{left:{label:"←"},right:{label:"→"}}
     });
     field.appendChild(button); return field;
 }
@@ -1809,7 +1890,7 @@ function createCompactTeeSection(hole, enabled) {
     let seen=true; try{seen=localStorage.getItem("scorecraft_flick_guide_seen")==="1";}catch(_){}
     if(!seen && (enabled.direction||enabled.curve)){
         const guide=document.createElement("div"); guide.className="flick-first-guide";
-        guide.textContent="着弾：← / タップ中央 / → / ↑奥 / ↓手前　　曲がり：← / タップ直 / →";
+        guide.textContent="長押しで候補表示 → 選びたい方向へフリックして離す（短いタップは中央 / 直）";
         section.appendChild(guide);
     }
     return section;
