@@ -1341,6 +1341,9 @@ function renderSelectedCourse(course) {
 
     area.hidden = false;
 
+    const infoCard = document.querySelector(".round-info-card");
+    if (infoCard) infoCard.classList.add("course-selected");
+
 }
 
 
@@ -1356,6 +1359,9 @@ function hideSelectedCourse() {
         area.hidden = true;
 
     }
+
+    const infoCard = document.querySelector(".round-info-card");
+    if (infoCard) infoCard.classList.remove("course-selected");
 
 }
 
@@ -1608,108 +1614,256 @@ function renderHoleHeader(hole) {
 
 function renderInputArea(hole) {
 
-    const area =
-        document.getElementById("inputArea");
-
-    if (!area) {
-
-        return;
-
-    }
+    const area = document.getElementById("inputArea");
+    if (!area) return;
 
     area.innerHTML = "";
+    area.className = "compact-hole-input";
 
-    area.appendChild(
-        createParInput(hole)
-    );
+    const enabled = roundState.round.enabledInputs;
 
-    const enabled =
-        roundState.round.enabledInputs;
-
+    // 主要数値は最上段にまとめる。
+    const primary = document.createElement("div");
+    primary.className = "compact-primary-grid";
+    primary.appendChild(createCompactParInput(hole));
     if (enabled.score) {
-
-        area.appendChild(
-            createNumberInputGroup(
-                "score",
-                INPUT_LABELS.score,
-                hole.score,
-                1,
-                20
-            )
-        );
-
+        primary.appendChild(createCompactNumberControl("score", "SCORE", hole.score, 1, 20));
     }
-
     if (enabled.putt) {
+        primary.appendChild(createCompactNumberControl("putts", "PUTT", hole.putts, 0, 10));
+    }
+    area.appendChild(primary);
 
-        area.appendChild(
-            createNumberInputGroup(
-                "putts",
-                INPUT_LABELS.putt,
-                hole.putts,
-                0,
-                10
-            )
-        );
-
+    // ティーショット：クラブ + 着弾フリック + 球筋フリック。
+    if (enabled.teeClub || enabled.direction || enabled.curve) {
+        area.appendChild(createCompactTeeSection(hole, enabled));
     }
 
-    if (enabled.greenDistance) {
-
-        area.appendChild(
-            createGreenDistanceInput(hole)
-        );
-
-    }
-
-    if (enabled.teeClub) {
-
-        area.appendChild(
-            createClubSelect(hole)
-        );
-
-    }
-
-    if (enabled.direction) {
-
-        area.appendChild(
-            createDirectionInput(hole)
-        );
-
-    }
-
-    if (enabled.curve) {
-        area.appendChild(createCurveInput(hole));
-    }
-
+    // グリーンを狙ったショット。
     if (enabled.approachShot) {
-        area.appendChild(createApproachShotInput(hole));
+        area.appendChild(createCompactApproachSection(hole));
     }
 
-    if (
-        enabled.ob ||
-        enabled.onePenalty ||
-        enabled.bunker
-    ) {
+    // パット距離（設定で有効な場合のみ）。
+    if (enabled.greenDistance) {
+        area.appendChild(createCompactPuttingSection(hole));
+    }
 
-        area.appendChild(
-            createPenaltyArea(hole)
-        );
-
+    // OB / 1ペナ / バンカーは1段にまとめる。
+    if (enabled.ob || enabled.onePenalty || enabled.bunker) {
+        area.appendChild(createCompactPenaltyArea(hole));
     }
 
     if (enabled.memo) {
-
-        area.appendChild(
-            createMemoInput(hole)
-        );
-
+        area.appendChild(createCompactMemoInput(hole));
     }
 
-    area.appendChild(
-        createHoleProgress()
-    );
+    area.appendChild(createHoleProgress());
+}
 
+function createCompactParInput(hole) {
+    const item = document.createElement("div");
+    item.className = "compact-field compact-par-field";
+    const label = createLabel("PAR");
+    const select = document.createElement("select");
+    select.id = "parInput";
+    [{v:"",t:"-"},{v:"3",t:"3"},{v:"4",t:"4"},{v:"5",t:"5"},{v:"6",t:"6"}].forEach(x=>{
+        const o=document.createElement("option"); o.value=x.v; o.textContent=x.t; select.appendChild(o);
+    });
+    select.value = hole.par ? String(hole.par) : "";
+    select.addEventListener("change", event => {
+        hole.par = event.target.value ? Number(event.target.value) : null;
+        hole.teeShot.direction = "";
+        recalculateStoredParSummary();
+        calculateTotals();
+        renderCurrentHole();
+    });
+    item.append(label, select);
+    return item;
+}
+
+function createCompactNumberControl(field, labelText, value, min, max) {
+    const item = document.createElement("div");
+    item.className = "compact-field compact-step-field";
+    item.appendChild(createLabel(labelText));
+    const control = document.createElement("div");
+    control.className = "compact-stepper";
+    const minus = document.createElement("button"); minus.type="button"; minus.textContent="−"; minus.setAttribute("aria-label", `${labelText}を減らす`);
+    const input = document.createElement("input"); input.type="number"; input.inputMode="numeric"; input.min=String(min); input.max=String(max); input.value=value??""; input.placeholder="-"; input.setAttribute("aria-label", labelText);
+    const plus = document.createElement("button"); plus.type="button"; plus.textContent="＋"; plus.setAttribute("aria-label", `${labelText}を増やす`);
+    const commit = next => {
+        const hole = getCurrentHoleData();
+        const val = next === null ? null : Math.max(min, Math.min(max, Number(next)));
+        hole[field] = val;
+        input.value = val ?? "";
+        calculateTotals();
+        saveDraftRound();
+    };
+    minus.addEventListener("click", ()=>commit(input.value==="" ? min : Number(input.value)-1));
+    plus.addEventListener("click", ()=>commit(input.value==="" ? min : Number(input.value)+1));
+    input.addEventListener("input", e=>{
+        const hole=getCurrentHoleData();
+        hole[field]=e.target.value===""?null:Number(e.target.value);
+        calculateTotals(); saveDraftRound();
+    });
+    control.append(minus,input,plus); item.appendChild(control); return item;
+}
+
+function createCompactSection(title, className="") {
+    const section=document.createElement("section");
+    section.className=`compact-input-section ${className}`.trim();
+    const heading=document.createElement("div"); heading.className="compact-section-title"; heading.textContent=title;
+    section.appendChild(heading); return section;
+}
+
+function createCompactClubField(hole, target="tee") {
+    const field=document.createElement("div"); field.className="compact-field";
+    field.appendChild(createLabel(target==="tee"?"Club":"Club"));
+    const select=document.createElement("select");
+    const empty=document.createElement("option"); empty.value=""; empty.textContent=roundState.selectedClubIds.length?"-":"未登録"; select.appendChild(empty);
+    roundState.selectedClubIds.filter(id=>target==="tee" || normalizeClubId(id)!=="putter").forEach(clubId=>{
+        const o=document.createElement("option"); o.value=normalizeClubId(clubId); o.textContent=getClubDisplayName(clubId); select.appendChild(o);
+    });
+    const source=target==="tee"?hole.teeShot:hole.approachShot;
+    select.value=normalizeClubId(source.clubId||"");
+    select.addEventListener("change",e=>{source.clubId=e.target.value;saveDraftRound();});
+    field.appendChild(select); return field;
+}
+
+function directionDisplay(hole) {
+    const value=hole.teeShot.direction||"";
+    const map={left:"←",right:"→",short:"手前",over:"奥",fairway:"FW",green:"1on"};
+    return map[value]||"●";
+}
+
+function curveDisplay(hole) {
+    const map={left:"↙",straight:"│",right:"↘"};
+    return map[hole.teeShot.curve||""]||"─";
+}
+
+function markFlickGuideSeen() {
+    try { localStorage.setItem("scorecraft_flick_guide_seen","1"); } catch (_) {}
+    document.querySelectorAll(".flick-first-guide").forEach(el=>el.remove());
+}
+
+function attachFlickGesture(button, handlers) {
+    let sx=0, sy=0, active=false;
+    const threshold=24;
+    button.style.touchAction="none";
+    button.addEventListener("pointerdown", event=>{
+        active=true; sx=event.clientX; sy=event.clientY;
+        button.classList.add("flick-active");
+        try{button.setPointerCapture(event.pointerId);}catch(_){}
+        event.preventDefault();
+    });
+    button.addEventListener("pointerup", event=>{
+        if(!active)return; active=false; button.classList.remove("flick-active");
+        const dx=event.clientX-sx, dy=event.clientY-sy;
+        let action="tap";
+        if(Math.max(Math.abs(dx),Math.abs(dy))>=threshold){
+            if(Math.abs(dx)>=Math.abs(dy)) action=dx<0?"left":"right";
+            else action=dy<0?"up":"down";
+        }
+        if(typeof handlers[action]==="function") handlers[action]();
+        markFlickGuideSeen();
+        event.preventDefault();
+    });
+    button.addEventListener("pointercancel",()=>{active=false;button.classList.remove("flick-active");});
+    button.addEventListener("click",event=>event.preventDefault());
+}
+
+function createDirectionFlickField(hole) {
+    const field=document.createElement("div"); field.className="compact-field flick-field"; field.appendChild(createLabel("着弾"));
+    const button=document.createElement("button"); button.type="button"; button.className="flick-control direction-flick"; button.textContent=directionDisplay(hole); button.setAttribute("aria-label","着弾方向。タップで中央、上下左右フリックで方向を選択");
+    if(hole.teeShot.direction)button.classList.add("selected");
+    const center=()=>{hole.teeShot.direction=Number(hole.par)===3?"green":"fairway";saveDraftRound();renderCurrentHole();};
+    attachFlickGesture(button,{
+        tap:center,
+        left:()=>{hole.teeShot.direction="left";saveDraftRound();renderCurrentHole();},
+        right:()=>{hole.teeShot.direction="right";saveDraftRound();renderCurrentHole();},
+        up:()=>{hole.teeShot.direction="over";saveDraftRound();renderCurrentHole();},
+        down:()=>{hole.teeShot.direction="short";saveDraftRound();renderCurrentHole();}
+    });
+    field.appendChild(button); return field;
+}
+
+function createCurveFlickField(hole) {
+    const field=document.createElement("div"); field.className="compact-field flick-field"; field.appendChild(createLabel("曲がり"));
+    const button=document.createElement("button"); button.type="button"; button.className="flick-control curve-flick"; button.textContent=curveDisplay(hole); button.setAttribute("aria-label","球筋。タップでまっすぐ、左右フリックで曲がり方向を選択");
+    if(hole.teeShot.curve)button.classList.add("selected");
+    attachFlickGesture(button,{
+        tap:()=>{hole.teeShot.curve="straight";saveDraftRound();renderCurrentHole();},
+        left:()=>{hole.teeShot.curve="left";saveDraftRound();renderCurrentHole();},
+        right:()=>{hole.teeShot.curve="right";saveDraftRound();renderCurrentHole();}
+    });
+    field.appendChild(button); return field;
+}
+
+function createCompactTeeSection(hole, enabled) {
+    const section=createCompactSection("TEE","compact-tee-section");
+    const row=document.createElement("div"); row.className="compact-three-grid";
+    if(enabled.teeClub) row.appendChild(createCompactClubField(hole,"tee"));
+    if(enabled.direction) row.appendChild(createDirectionFlickField(hole));
+    if(enabled.curve) row.appendChild(createCurveFlickField(hole));
+    section.appendChild(row);
+    let seen=true; try{seen=localStorage.getItem("scorecraft_flick_guide_seen")==="1";}catch(_){}
+    if(!seen && (enabled.direction||enabled.curve)){
+        const guide=document.createElement("div"); guide.className="flick-first-guide";
+        guide.textContent="着弾：← / タップ中央 / → / ↑奥 / ↓手前　　曲がり：← / タップ直 / →";
+        section.appendChild(guide);
+    }
+    return section;
+}
+
+function createCompactApproachSection(hole) {
+    if(!hole.approachShot) hole.approachShot={clubId:"",distanceYards:null,greenOn:null};
+    const section=createCompactSection("GREEN","compact-green-section");
+    const row=document.createElement("div"); row.className="compact-three-grid";
+    row.appendChild(createCompactClubField(hole,"approach"));
+    const distanceField=document.createElement("div"); distanceField.className="compact-field"; distanceField.appendChild(createLabel("残りyd"));
+    const distance=document.createElement("input"); distance.type="number"; distance.inputMode="numeric"; distance.min="0"; distance.max="500"; distance.step="1"; distance.placeholder="-"; distance.value=hole.approachShot.distanceYards??"";
+    distance.addEventListener("input",e=>{hole.approachShot.distanceYards=e.target.value===""?null:Number(e.target.value);saveDraftRound();}); distanceField.appendChild(distance); row.appendChild(distanceField);
+    const girField=document.createElement("div"); girField.className="compact-field"; girField.appendChild(createLabel("GIR"));
+    const gir=document.createElement("button"); gir.type="button"; gir.className="compact-gir-button";
+    const update=()=>{gir.textContent=hole.approachShot.greenOn===true?"ON":hole.approachShot.greenOn===false?"MISS":"—";gir.classList.toggle("selected",hole.approachShot.greenOn===true);gir.classList.toggle("miss",hole.approachShot.greenOn===false);}; update();
+    gir.addEventListener("click",()=>{hole.approachShot.greenOn=hole.approachShot.greenOn===null?true:hole.approachShot.greenOn===true?false:null;saveDraftRound();update();}); girField.appendChild(gir); row.appendChild(girField);
+    section.appendChild(row); return section;
+}
+
+function createCompactPuttingSection(hole) {
+    const section=createCompactSection("PUTTING","compact-putting-section");
+    const row=document.createElement("div"); row.className="compact-two-grid";
+    const field=document.createElement("div"); field.className="compact-field";
+    const unit=roundState.round.distanceUnit, unitLabel=unit==="yard"?"yd":"歩"; field.appendChild(createLabel(`1st距離 (${unitLabel})`));
+    const input=document.createElement("input"); input.type="number"; input.inputMode="decimal"; input.min="0"; input.step=unit==="yard"?"0.1":"1"; input.placeholder="-"; input.value=hole.greenDistance.value??"";
+    input.addEventListener("input",e=>{hole.greenDistance.value=e.target.value===""?null:Number(e.target.value);hole.greenDistance.unit=unit;saveDraftRound();}); field.appendChild(input); row.appendChild(field); section.appendChild(row); return section;
+}
+
+function createCompactPenaltyArea(hole) {
+    const section=createCompactSection("OTHER","compact-other-section");
+    const row=document.createElement("div"); row.className="compact-penalty-grid";
+    const enabled=roundState.round.enabledInputs;
+    if(enabled.ob) row.appendChild(createCompactCounter("OB",hole.ob,v=>hole.ob=v));
+    if(enabled.onePenalty) row.appendChild(createCompactCounter("1ペナ",hole.onePenalty,v=>hole.onePenalty=v));
+    if(enabled.bunker) row.appendChild(createCompactCounter("Bunker",hole.bunker,v=>hole.bunker=v));
+    section.appendChild(row); return section;
+}
+
+function createCompactCounter(labelText,currentValue,onChange){
+    const item=document.createElement("div"); item.className="compact-counter-item";
+    const label=document.createElement("span"); label.textContent=labelText;
+    const control=document.createElement("div"); control.className="compact-mini-counter";
+    const minus=document.createElement("button");minus.type="button";minus.textContent="−";
+    const value=document.createElement("strong");value.textContent=String(Number(currentValue||0));
+    const plus=document.createElement("button");plus.type="button";plus.textContent="＋";
+    minus.addEventListener("click",()=>{const v=Math.max(0,Number(value.textContent)-1);value.textContent=String(v);onChange(v);saveDraftRound();});
+    plus.addEventListener("click",()=>{const v=Number(value.textContent)+1;value.textContent=String(v);onChange(v);saveDraftRound();});
+    control.append(minus,value,plus); item.append(label,control); return item;
+}
+
+function createCompactMemoInput(hole){
+    const section=createCompactSection("MEMO","compact-memo-section");
+    const input=document.createElement("input"); input.type="text"; input.placeholder="このホールのメモ"; input.value=hole.memo||""; input.addEventListener("input",e=>{hole.memo=e.target.value;saveDraftRound();}); section.appendChild(input); return section;
 }
 
 
