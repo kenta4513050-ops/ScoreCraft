@@ -13,7 +13,7 @@ const INPUT_MODES = Object.freeze({
 });
 
 const DEFAULT_CONFIG = Object.freeze({
-    version: 2,
+    version: 3,
     inputMode: INPUT_MODES.STANDARD,
     distanceUnit: "step",
     enabledInputs: Object.freeze({
@@ -22,6 +22,8 @@ const DEFAULT_CONFIG = Object.freeze({
         greenDistance: false,
         teeClub: true,
         direction: true,
+        curve: true,
+        approachShot: true,
         ob: true,
         onePenalty: true,
         bunker: true,

@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.15 - analysis.js
+// ScoreCraft Ver1.3.16 - analysis.js
 // ============================================
 "use strict";
 
@@ -12,6 +12,7 @@ const ANALYSIS_CLUB_NAMES = {
 const DIRECTION_ITEMS = [
     ["left","左（←）"],["right","右（→）"],["center","中央"],["short","手前"],["over","オーバー"]
 ];
+const CURVE_ITEMS = [["left","左曲がり"],["straight","まっすぐ"],["right","右曲がり"]];
 let analysisRounds = [];
 let resizeTimer = null;
 
@@ -33,11 +34,11 @@ function loadAnalysisRounds(){
 function renderAnalysis(){
     const count=document.getElementById("analysisRoundCount"); if(count) count.textContent=`${analysisRounds.length}回`;
     if(!analysisRounds.length){ renderEmptyAnalysis(); return; }
-    renderSummary(); renderScoreChart(); renderClubAnalysis(); renderPuttDistanceAnalysis();
+    renderSummary(); renderScoreChart(); renderClubAnalysis(); renderGreenOnAnalysis(); renderPuttDistanceAnalysis();
 }
 function renderEmptyAnalysis(){
     const empty=`<div class="empty-state compact"><p>分析できるラウンドがまだありません。</p><button class="btn" type="button" onclick="location.href='round.html'">⛳ ラウンドを入力</button></div>`;
-    ["analysisSummary","scoreChartArea","clubAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
+    ["analysisSummary","scoreChartArea","clubAnalysis","greenOnAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
 }
 function renderSummary(){
     const scores=analysisRounds.map(getRoundScore), totalPutts=sumHoleValue("putts"), totalOb=sumHoleValue("ob"), totalBunker=sumHoleValue("bunker");
@@ -53,14 +54,15 @@ function renderClubAnalysis(){
         analysisRounds.forEach(round=>getHoles(round).forEach(hole=>{
             const par=Number(hole?.par), clubId=String(hole?.teeShot?.clubId||"").trim();
             if(!group.match(par)||!clubId) return;
-            total++; if(!clubMap[clubId]) clubMap[clubId]={count:0,directions:{left:0,right:0,center:0,short:0,over:0}};
+            total++; if(!clubMap[clubId]) clubMap[clubId]={count:0,directions:{left:0,right:0,center:0,short:0,over:0},curves:{left:0,straight:0,right:0}};
             clubMap[clubId].count++;
             const d=normalizeDirection(hole?.teeShot?.direction); if(d) clubMap[clubId].directions[d]++;
+            const curve=normalizeCurve(hole?.teeShot?.curve); if(curve) clubMap[clubId].curves[curve]++;
         }));
         const sorted=Object.entries(clubMap).sort((a,b)=>b[1].count-a[1].count);
         return `<div class="club-par-group"><h3>${group.title}</h3>${!total?`<div class="empty-state compact"><p>使用クラブの入力データがありません。</p></div>`:`<div class="club-analysis-list">${sorted.map(([id,data])=>{
             const pct=Math.round(data.count/total*100); const detailId=`club-detail-${group.key}-${safeId(id)}`;
-            return `<div class="club-analysis-item"><button class="club-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div class="club-analysis-heading"><strong>${escapeHtml(getClubName(id))}</strong><span>${pct}% <small>(${data.count}回)</small></span></div><div class="analysis-progress"><span style="width:${pct}%"></span></div><small class="club-tap-hint">タップして方向割合を表示</small></button><div id="${detailId}" class="club-direction-detail" hidden>${renderDirectionDetail(data.directions)}</div></div>`;
+            return `<div class="club-analysis-item"><button class="club-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div class="club-analysis-heading"><strong>${escapeHtml(getClubName(id))}</strong><span>${pct}% <small>(${data.count}回)</small></span></div><div class="analysis-progress"><span style="width:${pct}%"></span></div><small class="club-tap-hint">タップして方向割合を表示</small></button><div id="${detailId}" class="club-direction-detail" hidden>${renderDirectionDetail(data.directions,data.curves)}</div></div>`;
         }).join("")}</div>`}</div>`;
     }).join("");
     container.innerHTML=html;
@@ -69,10 +71,43 @@ function renderClubAnalysis(){
         button.setAttribute("aria-expanded",String(!open)); detail.hidden=open;
     }));
 }
-function renderDirectionDetail(counts){
+function renderDirectionDetail(counts,curves){
     const total=Object.values(counts).reduce((s,v)=>s+v,0);
-    if(!total) return `<p class="analysis-note">方向データがありません。</p>`;
-    return `<div class="club-direction-grid">${DIRECTION_ITEMS.map(([key,label])=>{const count=counts[key]||0,pct=Math.round(count/total*100);return `<div><span>${label}</span><strong>${pct}%</strong><small>${count}回</small></div>`;}).join("")}</div>`;
+    const curveTotal=Object.values(curves||{}).reduce((s,v)=>s+v,0);
+    const landing=total?`<h4 class="analysis-mini-heading">着弾方向</h4><div class="club-direction-grid">${DIRECTION_ITEMS.map(([key,label])=>{const count=counts[key]||0,pct=Math.round(count/total*100);return `<div><span>${label}</span><strong>${pct}%</strong><small>${count}回</small></div>`;}).join("")}</div>`:`<p class="analysis-note">着弾方向データがありません。</p>`;
+    const curve=curveTotal?`<h4 class="analysis-mini-heading">曲がり方向</h4><div class="club-direction-grid curve-analysis-grid">${CURVE_ITEMS.map(([key,label])=>{const count=curves[key]||0,pct=Math.round(count/curveTotal*100);return `<div><span>${label}</span><strong>${pct}%</strong><small>${count}回</small></div>`;}).join("")}</div>`:`<p class="analysis-note">曲がり方向データがありません。</p>`;
+    return landing+curve;
+}
+
+function renderGreenOnAnalysis(){
+    const container=document.getElementById("greenOnAnalysis");
+    if(!container)return;
+    const shots=[];
+    analysisRounds.forEach(round=>getHoles(round).forEach(hole=>{
+        const a=hole?.approachShot;
+        const clubId=String(a?.clubId||"").trim();
+        const distance=Number(a?.distanceYards);
+        const greenOn=typeof a?.greenOn==="boolean"?a.greenOn:null;
+        if(greenOn===null)return;
+        shots.push({clubId,distance:Number.isFinite(distance)?distance:null,greenOn});
+    }));
+    if(!shots.length){container.innerHTML=`<div class="empty-state compact"><p>グリーン狙いの入力データがありません。</p></div>`;return;}
+
+    const clubMap={};
+    shots.filter(s=>s.clubId).forEach(s=>{if(!clubMap[s.clubId])clubMap[s.clubId]={attempts:0,on:0};clubMap[s.clubId].attempts++;if(s.greenOn)clubMap[s.clubId].on++;});
+    const clubs=Object.entries(clubMap).sort((a,b)=>b[1].attempts-a[1].attempts);
+    const distanceBuckets=[
+        {label:"〜50yd",min:0,max:50},{label:"51〜75yd",min:51,max:75},{label:"76〜100yd",min:76,max:100},
+        {label:"101〜125yd",min:101,max:125},{label:"126〜150yd",min:126,max:150},{label:"151〜175yd",min:151,max:175},
+        {label:"176〜200yd",min:176,max:200},{label:"201yd〜",min:201,max:Infinity}
+    ].map(b=>({...b,attempts:0,on:0}));
+    shots.filter(s=>Number.isFinite(s.distance)).forEach(s=>{const b=distanceBuckets.find(x=>s.distance>=x.min&&s.distance<=x.max);if(b){b.attempts++;if(s.greenOn)b.on++;}});
+
+    const renderRows=items=>items.map(item=>{const data=item.data||item;const pct=data.attempts?Math.round(data.on/data.attempts*100):0;return `<div class="gir-row"><div class="gir-row-head"><strong>${escapeHtml(item.label||"")}</strong><span>${pct}% <small>(${data.on}/${data.attempts})</small></span></div><div class="analysis-progress"><span style="width:${pct}%"></span></div></div>`;}).join("");
+    const clubHtml=clubs.length?renderRows(clubs.map(([id,data])=>({label:getClubName(id),data}))):`<p class="analysis-note">番手データがありません。</p>`;
+    const distItems=distanceBuckets.filter(b=>b.attempts).map(b=>({label:b.label,data:b}));
+    const distHtml=distItems.length?renderRows(distItems):`<p class="analysis-note">残りヤードデータがありません。</p>`;
+    container.innerHTML=`<div class="gir-analysis-grid"><section><h3>番手別グリーンオン率</h3>${clubHtml}</section><section><h3>距離別グリーンオン率</h3>${distHtml}</section></div><p class="analysis-note">率の右側は「グリーンオン数 / 試行数」です。</p>`;
 }
 
 function renderPuttDistanceAnalysis(){
@@ -257,6 +292,7 @@ function sumHoleValue(key){return analysisRounds.reduce((rt,r)=>rt+getHoles(r).r
 function getHoles(round){return Array.isArray(round?.holes)?round.holes:[];}
 function getRoundScore(round){const total=Number(round?.total);if(Number.isFinite(total)&&total>0)return total;return getHoles(round).reduce((s,h)=>s+(Number.isFinite(Number(h?.score))?Number(h.score):0),0);}
 function getRoundTime(round){const t=new Date(round?.completedAt||round?.date||round?.updatedAt||round?.createdAt).getTime();return Number.isFinite(t)?t:0;}
+function normalizeCurve(value){const d=String(value||"").toLowerCase().trim();if(["left","左","左曲がり","draw","hook"].includes(d))return"left";if(["right","右","右曲がり","fade","slice"].includes(d))return"right";if(["straight","center","まっすぐ","ストレート"].includes(d))return"straight";return"";}
 function normalizeDirection(value){const d=String(value||"").toLowerCase().trim();if(["left","l","左","←"].includes(d))return"left";if(["right","r","右","→"].includes(d))return"right";if(["center","centre","straight","middle","c","中央","真ん中","ストレート","fairway","green","fwキープ","1on","グリーンオン"].includes(d))return"center";if(["short","手前","↓"].includes(d))return"short";if(["over","オーバー","↑"].includes(d))return"over";return"";}
 function getClubName(id){return ANALYSIS_CLUB_NAMES[id]||String(id).toUpperCase();}
 function safeId(v){return String(v).replace(/[^a-zA-Z0-9_-]/g,"-");}

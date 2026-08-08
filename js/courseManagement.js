@@ -4,9 +4,18 @@ const standardPars=[4,4,3,5,4,3,4,4,5,4,3,4,5,4,4,3,4,5];
 function initCourseManager(){
     renderNavigation("settings");
     createParInputs();
-    renderCourseList();document.getElementById("saveCourseButton").addEventListener("click",saveCourseFromForm);document.getElementById("cancelEditButton").addEventListener("click",resetForm);document.getElementById("setPar72Button").addEventListener("click",()=>setPars(standardPars));document.getElementById("clearParButton").addEventListener("click",()=>setPars(Array(18).fill("")));}
+    renderCourseList();document.getElementById("saveCourseButton").addEventListener("click",saveCourseFromForm);document.getElementById("cancelEditButton").addEventListener("click",resetForm);document.getElementById("setPar72Button").addEventListener("click",()=>setPars(standardPars));document.getElementById("clearParButton").addEventListener("click",()=>setPars(Array(18).fill("")));document.getElementById("applyParSequenceButton").addEventListener("click",applyParSequence);const seq=document.getElementById("parSequenceInput");seq.addEventListener("input",()=>{seq.value=seq.value.replace(/[^3-6]/g,"").slice(0,18);if(seq.value.length===18)applyParSequence(false);});}
+
+function applyParSequence(showMessage=true){
+    const input=document.getElementById("parSequenceInput");
+    const digits=(input?.value||"").replace(/[^3-6]/g,"").slice(0,18);
+    if(input) input.value=digits;
+    if(digits.length!==18){if(showMessage)message("PARは3〜6の数字を18桁で入力してください。",true);return;}
+    setPars([...digits].map(Number));
+    if(showMessage)message("18ホールのPARへ反映しました。");
+}
 function createParInputs(){const grid=document.getElementById("parGrid");grid.innerHTML=Array.from({length:18},(_,i)=>`<label class="par-input-item"><span>${i+1}H</span><select id="par${i+1}" aria-label="${i+1}ホールのPAR"><option value="">-</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>`).join("");grid.querySelectorAll("select").forEach(el=>el.addEventListener("change",updateTotals));}
-function setPars(values){values.forEach((v,i)=>document.getElementById(`par${i+1}`).value=v);updateTotals();}
+function setPars(values){values.forEach((v,i)=>document.getElementById(`par${i+1}`).value=v);const seq=document.getElementById("parSequenceInput");if(seq)seq.value=values.every(v=>[3,4,5,6].includes(Number(v)))?values.join(""):"";updateTotals();}
 function getPars(){return Array.from({length:18},(_,i)=>Number(document.getElementById(`par${i+1}`).value));}
 function updateTotals(){const p=getPars().map(v=>Number.isFinite(v)?v:0);document.getElementById("outPar").textContent=p.slice(0,9).reduce((a,b)=>a+b,0);document.getElementById("inPar").textContent=p.slice(9).reduce((a,b)=>a+b,0);document.getElementById("totalPar").textContent=p.reduce((a,b)=>a+b,0);}
 function renderCourseList(){

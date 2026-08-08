@@ -66,7 +66,9 @@ const INPUT_LABELS = {
     putt: "パット数",
     greenDistance: "グリーンオン時の距離",
     teeClub: "ティーショットクラブ",
-    direction: "ティーショット方向",
+    direction: "ティーショット着弾方向",
+    curve: "ティーショット曲がり方向",
+    approachShot: "グリーンを狙ったショット",
     ob: "OB数",
     onePenalty: "1ペナ数",
     bunker: "バンカーに入った回数",
@@ -277,6 +279,8 @@ function getInputsForMode(mode) {
             greenDistance: false,
             teeClub: false,
             direction: false,
+            curve: false,
+            approachShot: false,
             ob: false,
             onePenalty: false,
             bunker: false,
@@ -293,6 +297,8 @@ function getInputsForMode(mode) {
             greenDistance: false,
             teeClub: true,
             direction: true,
+            curve: true,
+            approachShot: true,
             ob: true,
             onePenalty: true,
             bunker: true,
@@ -309,6 +315,8 @@ function getInputsForMode(mode) {
         greenDistance: custom.greenDistance ?? false,
         teeClub: custom.teeClub ?? false,
         direction: custom.direction ?? false,
+        curve: custom.curve ?? false,
+        approachShot: custom.approachShot ?? false,
         ob: custom.ob ?? false,
         onePenalty: custom.onePenalty ?? false,
         bunker: custom.bunker ?? false,
@@ -448,7 +456,19 @@ function createEmptyHole(number) {
 
             clubId: "",
 
-            direction: ""
+            direction: "",
+
+            curve: ""
+
+        },
+
+        approachShot: {
+
+            clubId: "",
+
+            distanceYards: null,
+
+            greenOn: null
 
         },
 
@@ -535,10 +555,20 @@ function normalizeRoundData() {
 
                 hole.teeShot = {
                     clubId: "",
-                    direction: ""
+                    direction: "",
+                    curve: ""
                 };
 
             }
+
+            hole.teeShot.curve = hole.teeShot.curve || "";
+
+            if (!hole.approachShot) {
+                hole.approachShot = { clubId: "", distanceYards: null, greenOn: null };
+            }
+            hole.approachShot.clubId = hole.approachShot.clubId || "";
+            hole.approachShot.distanceYards = hole.approachShot.distanceYards === null || hole.approachShot.distanceYards === "" ? null : Number(hole.approachShot.distanceYards);
+            hole.approachShot.greenOn = typeof hole.approachShot.greenOn === "boolean" ? hole.approachShot.greenOn : null;
 
             hole.ob =
                 Number(hole.ob || 0);
@@ -592,6 +622,8 @@ function getRoundConfig() {
             greenDistance: false,
             teeClub: true,
             direction: true,
+            curve: true,
+            approachShot: true,
             ob: true,
             onePenalty: true,
             bunker: true,
@@ -1646,6 +1678,14 @@ function renderInputArea(hole) {
 
     }
 
+    if (enabled.curve) {
+        area.appendChild(createCurveInput(hole));
+    }
+
+    if (enabled.approachShot) {
+        area.appendChild(createApproachShotInput(hole));
+    }
+
     if (
         enabled.ob ||
         enabled.onePenalty ||
@@ -2202,6 +2242,68 @@ function getDirectionOptions(par) {
 
 }
 
+
+// ============================================
+// ティーショット曲がり方向
+// ============================================
+function createCurveInput(hole) {
+    const group = createFormGroup();
+    group.appendChild(createLabel(INPUT_LABELS.curve));
+    const buttonArea = document.createElement("div");
+    buttonArea.className = "direction-buttons curve-buttons";
+    [
+        { value: "left", label: "↙ 左曲がり" },
+        { value: "straight", label: "↑ まっすぐ" },
+        { value: "right", label: "右曲がり ↘" }
+    ].forEach(item => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "direction-button";
+        button.textContent = item.label;
+        if (hole.teeShot.curve === item.value) button.classList.add("selected");
+        button.addEventListener("click", () => {
+            hole.teeShot.curve = hole.teeShot.curve === item.value ? "" : item.value;
+            saveDraftRound();
+            renderCurrentHole();
+        });
+        buttonArea.appendChild(button);
+    });
+    group.appendChild(buttonArea);
+    const note=document.createElement("p");
+    note.className="input-help-text";
+    note.textContent="着弾方向とは別に球筋の曲がりを記録します。";
+    group.appendChild(note);
+    return group;
+}
+
+// ============================================
+// グリーンを狙ったショット
+// ============================================
+function createApproachShotInput(hole) {
+    if (!hole.approachShot) hole.approachShot = { clubId: "", distanceYards: null, greenOn: null };
+    const group = createFormGroup();
+    group.classList.add("approach-shot-group");
+    group.appendChild(createLabel(INPUT_LABELS.approachShot));
+
+    const clubLabel=document.createElement("span"); clubLabel.className="sub-input-label"; clubLabel.textContent="番手"; group.appendChild(clubLabel);
+    const select=document.createElement("select");
+    const empty=document.createElement("option"); empty.value=""; empty.textContent=roundState.selectedClubIds.length?"クラブを選択":"マイクラブが未登録です"; select.appendChild(empty);
+    roundState.selectedClubIds.filter(id=>normalizeClubId(id)!=="putter").forEach(clubId=>{const opt=document.createElement("option");opt.value=normalizeClubId(clubId);opt.textContent=getClubDisplayName(clubId);select.appendChild(opt);});
+    select.value=normalizeClubId(hole.approachShot.clubId||"");
+    select.addEventListener("change",e=>{hole.approachShot.clubId=e.target.value;saveDraftRound();});
+    group.appendChild(select);
+
+    const distanceLabel=document.createElement("span"); distanceLabel.className="sub-input-label"; distanceLabel.textContent="残りヤード"; group.appendChild(distanceLabel);
+    const distance=document.createElement("input"); distance.type="number"; distance.inputMode="numeric"; distance.min="0"; distance.max="500"; distance.step="1"; distance.placeholder="例：145"; distance.value=hole.approachShot.distanceYards??"";
+    distance.addEventListener("input",e=>{hole.approachShot.distanceYards=e.target.value===""?null:Number(e.target.value);saveDraftRound();});
+    group.appendChild(distance);
+
+    const onLabel=document.createElement("span"); onLabel.className="sub-input-label"; onLabel.textContent="結果"; group.appendChild(onLabel);
+    const buttons=document.createElement("div"); buttons.className="direction-buttons green-on-buttons";
+    [{value:true,label:"✓ グリーンオン"},{value:false,label:"× グリーンオンせず"}].forEach(item=>{const b=document.createElement("button");b.type="button";b.className="direction-button";b.textContent=item.label;if(hole.approachShot.greenOn===item.value)b.classList.add("selected");b.addEventListener("click",()=>{hole.approachShot.greenOn=hole.approachShot.greenOn===item.value?null:item.value;saveDraftRound();renderCurrentHole();});buttons.appendChild(b);});
+    group.appendChild(buttons);
+    return group;
+}
 
 // ============================================
 // ペナルティ・バンカー
