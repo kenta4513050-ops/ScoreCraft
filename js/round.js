@@ -3131,10 +3131,26 @@ function finishRound() {
 
     clearDraftRound();
 
+    let autoBackupResult = null;
+    if (typeof runScoreCraftAutoBackup === "function") {
+        try {
+            autoBackupResult = runScoreCraftAutoBackup(
+                roundState.editMode ? "round-update" : "round-save",
+                { download: true }
+            );
+        } catch (error) {
+            console.error("自動バックアップに失敗しました。", error);
+        }
+    }
+
+    const backupSuffix = autoBackupResult && !autoBackupResult.skipped
+        ? (autoBackupResult.downloaded ? " バックアップも作成しました。" : " 端末内バックアップを更新しました。")
+        : "";
+
     showRoundMessage(
-        roundState.editMode
+        (roundState.editMode
             ? `スコア ${completedRound.total} に更新しました。`
-            : `お疲れさまでした！スコア ${completedRound.total} を保存しました。`
+            : `お疲れさまでした！スコア ${completedRound.total} を保存しました。`) + backupSuffix
     );
 
     window.setTimeout(

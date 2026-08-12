@@ -5,13 +5,14 @@
 // ============================================
 
 const BACKUP_FORMAT = "ScoreCraft Backup";
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2;
 
 const DATA_KEYS = [
     STORAGE.ROUNDS,
     STORAGE.CLUBS,
     STORAGE.CONFIG,
-    STORAGE.COURSES
+    STORAGE.COURSES,
+    "scorecraft_auto_backups"
 ];
 
 document.addEventListener("DOMContentLoaded", initializeDataManagement);
@@ -40,6 +41,8 @@ function initializeDataManagement() {
     document
         .getElementById("deleteAllDataButton")
         .addEventListener("click", deleteAllData);
+
+    initializeAutoBackupControls();
 }
 
 function renderDataSummary() {
@@ -72,22 +75,25 @@ function renderDataSummary() {
 }
 
 function exportBackup() {
-    const backup = {
-        format: BACKUP_FORMAT,
-        version: BACKUP_VERSION,
-        appVersion: typeof APP !== "undefined" ? APP.version : "unknown",
-        exportedAt: new Date().toISOString(),
-        data: {
-            rounds: readArray(STORAGE.ROUNDS),
-            clubs: readArray(STORAGE.CLUBS),
-            config: readObject(STORAGE.CONFIG),
-            courses: readArray(STORAGE.COURSES)
-        }
-    };
+    const backup = typeof createScoreCraftBackup === "function"
+        ? createScoreCraftBackup("manual")
+        : {
+            format: BACKUP_FORMAT,
+            version: BACKUP_VERSION,
+            appVersion: typeof APP !== "undefined" ? APP.version : "unknown",
+            exportedAt: new Date().toISOString(),
+            data: {
+                rounds: readArray(STORAGE.ROUNDS),
+                clubs: readArray(STORAGE.CLUBS),
+                config: readObject(STORAGE.CONFIG),
+                courses: readArray(STORAGE.COURSES)
+            }
+        };
 
     const filename = `ScoreCraft_backup_${formatFileDate(new Date())}.json`;
     downloadTextFile(filename, JSON.stringify(backup, null, 2), "application/json;charset=utf-8");
     showDataMessage("バックアップを保存しました。");
+    renderAutoBackupStatus();
 }
 
 async function importBackup(event) {
@@ -207,6 +213,104 @@ function exportRoundsCsv() {
     const filename = `ScoreCraft_rounds_${formatFileDate(new Date())}.csv`;
     downloadTextFile(filename, csv, "text/csv;charset=utf-8");
     showDataMessage(`${rounds.length}件のラウンドをCSV出力しました。`);
+}
+
+function initializeAutoBackupControls() {
+    const toggle = document.getElementById("autoBackupEnabled");
+    const downloadButton = document.getElementById("downloadLatestAutoBackupButton");
+    const restoreButton = document.getElementById("restoreLatestAutoBackupButton");
+
+    if (toggle) {
+        toggle.checked = typeof isScoreCraftAutoBackupEnabled === "function"
+            ? isScoreCraftAutoBackupEnabled()
+            : true;
+        toggle.addEventListener("change", () => {
+            if (typeof setScoreCraftAutoBackupEnabled === "function") {
+                setScoreCraftAutoBackupEnabled(toggle.checked);
+            }
+            renderAutoBackupStatus();
+            showDataMessage(toggle.checked ? "自動バックアップをONにしました。" : "自動バックアップをOFFにしました。");
+        });
+    }
+
+    if (downloadButton) {
+        downloadButton.addEventListener("click", () => {
+            try {
+                const backup = typeof createScoreCraftBackup === "function"
+                    ? createScoreCraftBackup("manual-auto-backup")
+                    : null;
+                if (!backup) throw new Error("backup unavailable");
+                if (typeof saveRollingAutoBackup === "function") saveRollingAutoBackup(backup);
+                const ok = typeof downloadScoreCraftBackup === "function"
+                    ? downloadScoreCraftBackup(backup, "ScoreCraft_Backup")
+                    : false;
+                if (!ok) throw new Error("download failed");
+                renderAutoBackupStatus();
+                showDataMessage("最新データのバックアップファイルを作成しました。");
+            } catch (error) {
+                console.error(error);
+                showDataMessage("バックアップファイルを作成できませんでした。", true);
+            }
+        });
+    }
+
+    if (restoreButton) {
+        restoreButton.addEventListener("click", restoreLatestInternalAutoBackup);
+    }
+
+    renderAutoBackupStatus();
+}
+
+function renderAutoBackupStatus() {
+    const area = document.getElementById("autoBackupStatus");
+    const restoreButton = document.getElementById("restoreLatestAutoBackupButton");
+    if (!area) return;
+
+    const backups = typeof getRollingAutoBackups === "function" ? getRollingAutoBackups() : [];
+    const latest = backups[0];
+    const enabled = typeof isScoreCraftAutoBackupEnabled === "function" ? isScoreCraftAutoBackupEnabled() : true;
+
+    if (restoreButton) restoreButton.disabled = !latest;
+
+    if (!latest) {
+        area.textContent = `${enabled ? "自動バックアップON" : "自動バックアップOFF"}・まだバックアップはありません`;
+        return;
+    }
+
+    const date = latest.exportedAt ? new Date(latest.exportedAt) : null;
+    const text = date && !Number.isNaN(date.getTime())
+        ? date.toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+        : "日時不明";
+    const count = latest.data && Array.isArray(latest.data.rounds) ? latest.data.rounds.length : 0;
+    area.textContent = `${enabled ? "自動バックアップON" : "自動バックアップOFF"}・最新 ${text}・ラウンド ${count}件`;
+}
+
+function restoreLatestInternalAutoBackup() {
+    const backups = typeof getRollingAutoBackups === "function" ? getRollingAutoBackups() : [];
+    const latest = backups[0];
+    if (!latest) {
+        showDataMessage("復元できる端末内自動バックアップがありません。", true);
+        return;
+    }
+
+    const shouldRestore = window.confirm(
+        "端末内の最新自動バックアップで現在のデータを上書きします。復元しますか？"
+    );
+    if (!shouldRestore) return;
+
+    try {
+        if (typeof restoreScoreCraftBackupData !== "function") {
+            throw new Error("restore helper unavailable");
+        }
+        restoreScoreCraftBackupData(latest);
+        renderDataSummary();
+        renderAutoBackupStatus();
+        showDataMessage("最新の自動バックアップを復元しました。再読み込みします。");
+        window.setTimeout(() => location.reload(), 900);
+    } catch (error) {
+        console.error(error);
+        showDataMessage("自動バックアップを復元できませんでした。", true);
+    }
 }
 
 function deleteAllData() {

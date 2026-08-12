@@ -1797,3 +1797,56 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
 .course-par-item>small{display:flex!important;align-items:center;justify-content:center;gap:1px;margin:0!important;font-size:7px!important}
 .course-par-item>small b,.course-par-item>small em{font-size:10px!important}
 @media(max-width:370px){.course-par-summary{gap:2px;padding:5px 3px}.course-par-item{gap:2px;padding:3px 1px}.course-par-item>span{font-size:8px}.course-par-item>strong{font-size:12px}.course-par-item>small{font-size:6.5px!important}.course-par-item>small b,.course-par-item>small em{font-size:9px!important}}
+
+/* ============================================
+   Ver1.3.20 自動バックアップ
+   ============================================ */
+.auto-backup-panel {
+    margin: 14px 0 16px;
+    padding: 14px;
+    border: 1px solid #d8e8d9;
+    border-radius: 14px;
+    background: #f8fcf8;
+}
+.auto-backup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.auto-backup-row p {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #5d6b5f;
+}
+.switch-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    font-weight: 700;
+    color: #2e7d32;
+}
+.switch-row input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: #2e7d32;
+}
+.auto-backup-status {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: #edf7ee;
+    font-size: 0.78rem;
+    color: #315c34;
+}
+.auto-backup-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+.auto-backup-actions button:disabled {
+    opacity: 0.5;
+}

@@ -1,13 +1,13 @@
 "use strict";
 
-const CACHE_NAME = "scorecraft-v1.3.19";
+const CACHE_NAME = "scorecraft-v1.3.20";
 const APP_FILES = [
   "./", "./index.html", "./round.html", "./history.html", "./analysis.html",
   "./myclubs.html", "./settings.html", "./course-management.html", "./import-rakuten.html",
   "./manifest.webmanifest", "./css/style.css", "./js/app.js", "./js/config.js",
   "./js/storage.js", "./js/navigation.js", "./js/index.js", "./js/courseDatabase.js",
   "./js/round.js", "./js/history.js", "./js/analysis.js", "./js/clubs.js",
-  "./js/settings.js", "./js/dataManagement.js", "./js/courseManagement.js", "./js/rakutenImport.js",
+  "./js/settings.js", "./js/backup.js", "./js/dataManagement.js", "./js/courseManagement.js", "./js/rakutenImport.js",
   "./icons/icon-192.png", "./icons/icon-512.png"
 ];
 

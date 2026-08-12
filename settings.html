@@ -149,6 +149,31 @@
 
         <div id="dataSummary" class="data-summary-grid"></div>
 
+        <div class="auto-backup-panel">
+            <div class="auto-backup-row">
+                <div>
+                    <strong>自動バックアップ</strong>
+                    <p>ラウンド保存時に全データのJSONバックアップを自動作成します。</p>
+                </div>
+                <label class="switch-row" for="autoBackupEnabled">
+                    <input id="autoBackupEnabled" type="checkbox">
+                    <span>ON</span>
+                </label>
+            </div>
+            <div id="autoBackupStatus" class="auto-backup-status"></div>
+            <div class="auto-backup-actions">
+                <button id="downloadLatestAutoBackupButton" class="secondary-button data-action-button" type="button">
+                    📦 最新データを今すぐバックアップ
+                </button>
+                <button id="restoreLatestAutoBackupButton" class="secondary-button data-action-button" type="button">
+                    ↩️ 端末内の最新自動バックアップを復元
+                </button>
+            </div>
+            <p class="data-note">
+                iPhoneでは、ラウンド保存時に作成されるJSONファイルを「ダウンロード」または「ファイル」に残しておくと、ホーム画面版を削除しても復元できます。端末内自動バックアップはPWA削除時に一緒に消える場合があります。
+            </p>
+        </div>
+
         <div class="data-action-list">
             <button id="exportBackupButton" class="btn" type="button">
                 📦 バックアップを保存
@@ -207,6 +232,7 @@
 <script src="js/storage.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/backup.js"></script>
 <script src="js/dataManagement.js"></script>
 
 </body>
