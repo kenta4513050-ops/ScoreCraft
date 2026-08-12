@@ -34,16 +34,45 @@ function loadAnalysisRounds(){
 function renderAnalysis(){
     const count=document.getElementById("analysisRoundCount"); if(count) count.textContent=`${analysisRounds.length}回`;
     if(!analysisRounds.length){ renderEmptyAnalysis(); return; }
-    renderSummary(); renderScoreChart(); renderClubAnalysis(); renderGreenOnAnalysis(); renderPuttDistanceAnalysis();
+    renderSummary(); renderScoreChart(); renderThreeHoleAnalysis(); renderClubAnalysis(); renderGreenOnAnalysis(); renderPuttDistanceAnalysis();
 }
 function renderEmptyAnalysis(){
     const empty=`<div class="empty-state compact"><p>分析できるラウンドがまだありません。</p><button class="btn" type="button" onclick="location.href='round.html'">⛳ ラウンドを入力</button></div>`;
-    ["analysisSummary","scoreChartArea","clubAnalysis","greenOnAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
+    ["analysisSummary","scoreChartArea","threeHoleAnalysis","clubAnalysis","greenOnAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
 }
 function renderSummary(){
     const scores=analysisRounds.map(getRoundScore), totalPutts=sumHoleValue("putts"), totalOb=sumHoleValue("ob"), totalBunker=sumHoleValue("bunker");
     const stats=[["平均スコア",formatDecimal(average(scores))],["ベスト",Math.min(...scores)],["ラウンド数",`${analysisRounds.length}回`],["平均パット",formatDecimal(totalPutts/analysisRounds.length)],["OB平均",formatDecimal(totalOb/analysisRounds.length)],["バンカー平均",formatDecimal(totalBunker/analysisRounds.length)]];
     document.getElementById("analysisSummary").innerHTML=stats.map(([l,v])=>`<div class="analysis-stat-card"><span>${escapeHtml(l)}</span><strong>${escapeHtml(String(v))}</strong></div>`).join("");
+}
+
+function renderThreeHoleAnalysis(){
+    const container=document.getElementById("threeHoleAnalysis");
+    if(!container)return;
+    const groups=[
+        {label:"1–3H",start:1,end:3},{label:"4–6H",start:4,end:6},{label:"7–9H",start:7,end:9},
+        {label:"10–12H",start:10,end:12},{label:"13–15H",start:13,end:15},{label:"16–18H",start:16,end:18}
+    ];
+    const items=groups.map(group=>{
+        const diffs=[];
+        analysisRounds.forEach(round=>{
+            const holes=getHoles(round).filter(h=>Number(h?.hole)>=group.start&&Number(h?.hole)<=group.end);
+            if(holes.length!==3)return;
+            let valid=true,total=0;
+            holes.forEach(h=>{
+                const score=Number(h?.score),par=Number(h?.par);
+                if(!Number.isFinite(score)||!Number.isFinite(par)){valid=false;return;}
+                total+=score-par;
+            });
+            if(valid)diffs.push(total);
+        });
+        return {...group,average:diffs.length?average(diffs):NaN,count:diffs.length};
+    });
+    container.innerHTML=`<div class="three-hole-grid">${items.map(item=>{
+        const value=Number.isFinite(item.average)?(item.average===0?"E":`${item.average>0?"+":""}${item.average.toFixed(1)}`):"-";
+        const cls=Number.isFinite(item.average)?(item.average<0?"under":item.average>0?"over":"even"):"";
+        return `<div class="three-hole-item ${cls}"><span>${item.label}</span><strong>${value}</strong><small>${item.count}R平均</small></div>`;
+    }).join("")}</div>`;
 }
 
 function renderClubAnalysis(){

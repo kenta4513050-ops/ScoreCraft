@@ -1453,6 +1453,13 @@ function updateParSummaryElements(
             "courseTotalPar"
         );
 
+    const outScoreElement = document.getElementById("courseOutScore");
+    const inScoreElement = document.getElementById("courseInScore");
+    const totalScoreElement = document.getElementById("courseTotalScore");
+    const outPuttsElement = document.getElementById("courseOutPutts");
+    const inPuttsElement = document.getElementById("courseInPutts");
+    const totalPuttsElement = document.getElementById("courseTotalPutts");
+
     if (
         !summary ||
         !outElement ||
@@ -1472,6 +1479,28 @@ function updateParSummaryElements(
 
     totalElement.textContent =
         totalPar ?? "-";
+
+    const holes = Array.isArray(roundState?.round?.holes) ? roundState.round.holes : [];
+    const aggregateRange = (start, end, key) => {
+        const values = holes
+            .filter(hole => Number(hole?.hole) >= start && Number(hole?.hole) <= end)
+            .map(hole => hole?.[key])
+            .filter(value => value !== null && value !== "" && Number.isFinite(Number(value)));
+        return values.length ? values.reduce((sum, value) => sum + Number(value), 0) : null;
+    };
+    const outScore = aggregateRange(1, 9, "score");
+    const inScore = aggregateRange(10, 18, "score");
+    const outPutts = aggregateRange(1, 9, "putts");
+    const inPutts = aggregateRange(10, 18, "putts");
+    const totalScore = outScore === null && inScore === null ? null : (outScore || 0) + (inScore || 0);
+    const totalPutts = outPutts === null && inPutts === null ? null : (outPutts || 0) + (inPutts || 0);
+
+    if (outScoreElement) outScoreElement.textContent = outScore ?? "-";
+    if (inScoreElement) inScoreElement.textContent = inScore ?? "-";
+    if (totalScoreElement) totalScoreElement.textContent = totalScore ?? "-";
+    if (outPuttsElement) outPuttsElement.textContent = outPutts ?? "-";
+    if (inPuttsElement) inPuttsElement.textContent = inPutts ?? "-";
+    if (totalPuttsElement) totalPuttsElement.textContent = totalPutts ?? "-";
 
     summary.hidden =
         outPar === null &&
@@ -2917,6 +2946,14 @@ function calculateTotals() {
     roundState.round.total =
         roundState.round.out +
         roundState.round.in;
+
+    if (typeof updateParSummaryElements === "function") {
+        updateParSummaryElements(
+            roundState.round.outPar,
+            roundState.round.inPar,
+            roundState.round.totalPar
+        );
+    }
 
 }
 

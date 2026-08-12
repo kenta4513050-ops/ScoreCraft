@@ -16,28 +16,44 @@
 <body>
     <header><h1>🏌️ ScoreCraft</h1><p>スコア分析</p></header>
     <main>
-        <section class="card">
+        <section class="card analysis-toc-card">
+            <div class="section-heading"><div><h2>分析メニュー</h2><p class="section-description">見たい項目へすぐ移動できます。</p></div></div>
+            <nav class="analysis-toc" aria-label="分析項目">
+                <a href="#performanceSection">パフォーマンス</a>
+                <a href="#scoreTrendSection">スコア推移</a>
+                <a href="#threeHoleSection">3ホール分析</a>
+                <a href="#teeSection">ティーショット</a>
+                <a href="#girSection">グリーンオン</a>
+                <a href="#puttSection">パット距離</a>
+            </nav>
+        </section>
+        <section id="performanceSection" class="card analysis-anchor-section">
             <div class="section-heading"><div><h2>パフォーマンス</h2><p class="section-description">保存したラウンドを自動集計します。</p></div><span id="analysisRoundCount" class="history-count">0回</span></div>
             <div id="analysisSummary" class="analysis-summary-grid">読み込み中...</div>
         </section>
 
-        <section class="card">
+        <section id="scoreTrendSection" class="card analysis-anchor-section">
             <div class="section-heading"><div><h2>スコア推移</h2><p class="section-description">スコアは棒、パット数と平均パット距離は折れ線で表示します。</p></div></div>
             <div class="analysis-chart-legend" aria-hidden="true"><span>■ スコア</span><span>● パット数</span><span>● 平均距離（歩）</span></div>
             <div id="scoreChartArea" class="score-chart-area"><canvas id="scoreChart" aria-label="スコア、パット数、平均パット距離の推移グラフ"></canvas></div>
         </section>
 
-        <section class="card">
+        <section id="threeHoleSection" class="card analysis-anchor-section">
+            <div class="section-heading"><div><h2>3ホールごとの平均スコア</h2><p class="section-description">各3ホール区間のPar差をラウンド平均で表示します。</p></div></div>
+            <div id="threeHoleAnalysis">読み込み中...</div>
+        </section>
+
+        <section id="teeSection" class="card analysis-anchor-section">
             <div class="section-heading"><div><h2>ティーショット使用クラブ</h2><p class="section-description">Par4・5とPar3に分けて使用率を表示します。クラブをタップすると着弾方向と曲がり方向の割合を確認できます。</p></div></div>
             <div id="clubAnalysis">読み込み中...</div>
         </section>
 
-        <section class="card">
+        <section id="girSection" class="card analysis-anchor-section">
             <div class="section-heading"><div><h2>グリーンオン分析</h2><p class="section-description">グリーンを狙ったショットから、番手別・残り距離別のグリーンオン率を集計します。</p></div></div>
             <div id="greenOnAnalysis">読み込み中...</div>
         </section>
 
-        <section class="card">
+        <section id="puttSection" class="card analysis-anchor-section">
             <div class="section-heading"><div><h2>パット距離別 平均パット数</h2><p class="section-description">ファーストパット距離（歩数）ごとの平均パット数です。</p></div></div>
             <div id="puttDistanceAnalysis" class="putt-distance-chart-area">読み込み中...</div>
         </section>
