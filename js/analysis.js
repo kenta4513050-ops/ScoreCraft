@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.26 - analysis.js
+// ScoreCraft Ver1.3.27 - analysis.js
 // ============================================
 "use strict";
 
@@ -372,76 +372,5 @@ function getRoundOnRates(round){
     let den=0,parOn=0,bogeyOn=0;getHoles(round).forEach(h=>{const par=Number(h?.par);if(!Number.isFinite(par))return;den++;const n=analysisFirstGreenShotNo(h);if(Number.isFinite(n)){if(n<=par-2)parOn++;if(n<=par-1)bogeyOn++;}});
     return {parOn:den?parOn/den*100:NaN,bogeyOn:den?bogeyOn/den*100:NaN};
 }
-function renderScoreChart(){
-    const canvas=document.getElementById("scoreChart"); if(!canvas||!canvas.getContext)return;
-    const rounds=analysisRounds.slice(0,10).reverse();
-    const scores=rounds.map(getRoundScore),putts=rounds.map(getRoundPutts),distances=rounds.map(getRoundAverageDistance);
-    const rect=canvas.parentElement.getBoundingClientRect();
-    const width=Math.max(280,Math.floor(rect.width)),height=Math.round(width*0.75),ratio=window.devicePixelRatio||1; // 縦3：横4
-    canvas.width=Math.round(width*ratio); canvas.height=Math.round(height*ratio); canvas.style.width=`${width}px`; canvas.style.height=`${height}px`;
-    const c=canvas.getContext("2d"); c.setTransform(ratio,0,0,ratio,0,0); c.clearRect(0,0,width,height);
 
-    const compact=width<390;
-    const left=compact?34:44,right=compact?67:82,top=compact?25:30,bottom=compact?39:50;
-    const plotW=width-left-right,plotH=height-top-bottom,plotRight=left+plotW;
-    // 系列ごとに余白を変え、棒と折れ線の重なりを抑える。
-    // スコアは上側の余白を広めに取り、棒の上端を少し下げる。
-    // パット数と平均距離は下限側の余白を広めに取り、折れ線を上側へ配置する。
-    const scoreScale=makeSeriesScale(scores,{unit:5,steps:5,lowerPadding:5,upperPadding:15,minFloor:0});
-    const puttScale=makeSeriesScale(putts,{unit:2,steps:4,lowerPadding:6,upperPadding:2,minFloor:0});
-    const distanceScale=makeSeriesScale(distances,{unit:0.5,steps:4,lowerPadding:1.5,upperPadding:0.5,minFloor:0});
-    const axisFont=compact?8:10,labelFont=compact?7.5:10,valueFont=compact?7.5:10;
-
-    c.font=`${axisFont}px "Yu Gothic UI",sans-serif`; c.textBaseline="middle";
-    for(let i=0;i<=5;i++){
-        const y=top+plotH*i/5,value=scoreScale.max-(scoreScale.max-scoreScale.min)*i/5;
-        c.strokeStyle="#e3e8e4"; c.lineWidth=1; c.beginPath(); c.moveTo(left,y); c.lineTo(plotRight,y); c.stroke();
-        c.fillStyle="#2E7D32"; c.textAlign="right"; c.fillText(String(Math.round(value)),left-5,y);
-    }
-    for(let i=0;i<=4;i++){
-        const y=top+plotH*i/4,value=puttScale.max-(puttScale.max-puttScale.min)*i/4;
-        c.fillStyle="#2367d7"; c.textAlign="left"; c.fillText(String(Math.round(value)),plotRight+5,y);
-    }
-    for(let i=0;i<=4;i++){
-        const y=top+plotH*i/4,value=distanceScale.max-(distanceScale.max-distanceScale.min)*i/4;
-        c.fillStyle="#f26a13"; c.textAlign="right"; c.fillText(value.toFixed(1),width-1,y);
-    }
-
-    c.strokeStyle="#2E7D32"; c.lineWidth=1.1; c.beginPath(); c.moveTo(left,top); c.lineTo(left,top+plotH); c.stroke();
-    c.strokeStyle="#2367d7"; c.beginPath(); c.moveTo(plotRight,top); c.lineTo(plotRight,top+plotH); c.stroke();
-    c.strokeStyle="#f26a13"; c.beginPath(); c.moveTo(width-(compact?25:31),top); c.lineTo(width-(compact?25:31),top+plotH); c.stroke();
-
-    c.font=`bold ${axisFont}px "Yu Gothic UI",sans-serif`; c.textBaseline="bottom";
-    c.fillStyle="#2E7D32"; c.textAlign="left"; c.fillText("スコア",left,top-6);
-    c.fillStyle="#2367d7"; c.textAlign="left"; c.fillText("パット",plotRight+3,top-6);
-    c.fillStyle="#f26a13"; c.textAlign="right"; c.fillText("距離",width-1,top-6);
-
-    // データ点を左右の縦軸から内側へ寄せ、軸・目盛りとの重なりを防ぐ。
-    const fixedSlots=10;
-    const slot=plotW/fixedSlots,barW=Math.max(8,Math.min(28,slot*0.58));
-    const edgeInset=Math.max(barW/2+4,compact?11:14);
-    const dataLeft=left+edgeInset;
-    const dataPlotW=Math.max(1,plotW-edgeInset*2);
-    const fixedStep=dataPlotW/(fixedSlots-1);
-    const getDataX=i=>dataLeft+fixedStep*i;
-
-    // スコアは棒グラフ
-    scores.forEach((v,i)=>{
-        if(!Number.isFinite(v))return;
-        const x=getDataX(i);
-        const y=top+(scoreScale.max-v)/(scoreScale.max-scoreScale.min)*plotH;
-        const base=top+plotH,h=Math.max(1,base-y);
-        const grad=c.createLinearGradient(0,y,0,base); grad.addColorStop(0,"#58b54d"); grad.addColorStop(1,"#2f8c32");
-        c.fillStyle=grad; roundedRect(c,x-barW/2,y,barW,h,3); c.fill();
-        c.fillStyle="#247a2a"; c.font=`bold ${valueFont}px "Yu Gothic UI",sans-serif`; c.textAlign="center"; c.textBaseline="bottom"; c.fillText(String(Math.round(v)),x,y-3);
-    });
-
-    // パット数と平均パット距離は折れ線
-    drawLineSeriesFixedSlots(c,putts,puttScale,"#2367d7",dataLeft,top,fixedStep,plotH,0,true,valueFont);
-    drawLineSeriesFixedSlots(c,distances,distanceScale,"#f26a13",dataLeft,top,fixedStep,plotH,1,true,valueFont);
-
-    c.fillStyle="#5f6c64"; c.font=`${labelFont}px "Yu Gothic UI",sans-serif`; c.textAlign="center"; c.textBaseline="top";
-    rounds.forEach((r,i)=>{const x=getDataX(i);c.fillText(formatChartDate(r.date),x,top+plotH+8);});
-    c.fillStyle="#526058"; c.font=`${compact?8:10}px "Yu Gothic UI",sans-serif`; c.fillText("ラウンド",left+plotW/2,height-13);
-}
 
