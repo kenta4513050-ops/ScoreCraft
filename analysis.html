@@ -32,9 +32,9 @@
         </section>
 
         <section id="scoreTrendSection" class="card analysis-anchor-section">
-            <div class="section-heading"><div><h2>スコア推移</h2><p class="section-description">スコアは棒、パット数と平均パット距離は折れ線で表示します。</p></div></div>
-            <div class="analysis-chart-legend" aria-hidden="true"><span>■ スコア</span><span>● パット数</span><span>● 平均距離（歩）</span></div>
-            <div id="scoreChartArea" class="score-chart-area"><canvas id="scoreChart" aria-label="スコア、パット数、平均パット距離の推移グラフ"></canvas></div>
+            <div class="section-heading"><div><h2>スコア推移</h2><p class="section-description">スコア、パーオン率、ボギーオン率を直近最大10ラウンドで表示します。</p></div></div>
+            <div class="analysis-chart-legend" aria-hidden="true"><span>■ スコア</span><span>● パーオン率</span><span>● ボギーオン率</span></div>
+            <div id="scoreChartArea" class="score-chart-area"><canvas id="scoreChart" aria-label="スコア、パーオン率、ボギーオン率の推移グラフ"></canvas></div>
         </section>
 
         <section id="threeHoleSection" class="card analysis-anchor-section">
@@ -50,6 +50,8 @@
         <section id="puttSection" class="card analysis-anchor-section">
             <div class="section-heading"><div><h2>パット距離別 平均パット数</h2><p class="section-description">ファーストパット距離（歩数）ごとの平均パット数です。</p></div></div>
             <div id="puttDistanceAnalysis" class="putt-distance-chart-area">読み込み中...</div>
+            <div class="analysis-subchart-heading"><h3>ラウンド別 パット推移</h3><p>平均パット距離とトータルパット数を直近最大10ラウンドで表示します。</p></div>
+            <div id="puttTrendArea" class="score-chart-area"><div class="analysis-chart-legend" aria-hidden="true"><span>● トータルパット</span><span>● 平均パット距離（歩）</span></div><canvas id="puttTrendChart" aria-label="ラウンドごとの平均パット距離とトータルパット数の推移グラフ"></canvas></div>
         </section>
     </main>
     <div id="navigation"></div>

@@ -607,3 +607,72 @@ function escapeHtml(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+
+// ===== Ver1.3.24 round detail overrides =====
+function historyShots(hole){
+    if(Array.isArray(hole?.shots) && hole.shots.length) return hole.shots;
+    const result=[];
+    if(hole?.teeShot && (hole.teeShot.clubId||hole.teeShot.direction)) result.push({clubId:hole.teeShot.clubId||"",landing:hole.teeShot.direction||"",targetYards:null,penalty:""});
+    if(hole?.approachShot && (hole.approachShot.clubId||hole.approachShot.distanceYards!==null)) result.push({clubId:hole.approachShot.clubId||"",landing:hole.approachShot.greenOn===true?"green":"",targetYards:hole.approachShot.distanceYards,penalty:""});
+    return result;
+}
+function historyLanding(v){
+    const d=String(v||"").toLowerCase().trim();
+    if(["left","l","左","←"].includes(d))return"left"; if(["right","r","右","→"].includes(d))return"right";
+    if(["green","グリーンオン","on","1on"].includes(d))return"green"; if(["fairway","fw","fwキープ","center","中央","・"].includes(d))return"fairway";
+    if(["short","手前","↓"].includes(d))return"short"; if(["over","奥","オーバー","↑"].includes(d))return"over"; return"";
+}
+function historyLandingLabel(v){return ({left:"←",right:"→",green:"・",fairway:"・",short:"↓",over:"↑"})[historyLanding(v)]||"-";}
+function historyPenaltyCount(hole,type,legacyKey){
+    const shots=historyShots(hole); const hasPenalty=shots.some(s=>String(s?.penalty||"").trim());
+    if(hasPenalty) return shots.filter(s=>String(s?.penalty||"").trim()===type).length;
+    const n=Number(hole?.[legacyKey]); return Number.isFinite(n)?n:0;
+}
+function historyFirstGreenShotNo(hole){
+    // Ver1.3.25: グリーンON打数はスコア - パット数で統一する。
+    const score=Number(hole?.score);
+    const putts=Number(hole?.putts);
+    if(!Number.isFinite(score)||!Number.isFinite(putts)||score<=0||putts<0)return null;
+    const greenOnStroke=score-putts;
+    return greenOnStroke>=1?greenOnStroke:null;
+}
+function historyRoundAdvancedStats(round){
+    const holes=Array.isArray(round?.holes)?round.holes:[];
+    let fwDen=0,fwOn=0,p3Den=0,p3On=0,parDen=0,parOn=0,bogeyOn=0; const greenDists=[];
+    holes.forEach(hole=>{
+        const par=Number(hole?.par); if(!Number.isFinite(par))return;
+        const shots=historyShots(hole); const tee=shots[0]; const teeLanding=historyLanding(tee?.landing);
+        if(par===3){p3Den++; if(teeLanding==="green")p3On++;}
+        if(par===4||par===5){fwDen++; if(teeLanding==="fairway")fwOn++;}
+        parDen++;
+        const greenNo=historyFirstGreenShotNo(hole);
+        if(Number.isFinite(greenNo)){
+            if(greenNo<=par-2)parOn++;
+            if(greenNo<=par-1)bogeyOn++;
+        }
+        shots.forEach(s=>{const yd=Number(s?.targetYards);if(Number.isFinite(yd)&&yd>0&&historyLanding(s?.landing)==="green")greenDists.push(yd);});
+        if(!shots.some(s=>historyLanding(s?.landing)==="green") && hole?.approachShot?.greenOn===true){const yd=Number(hole.approachShot.distanceYards);if(Number.isFinite(yd)&&yd>0)greenDists.push(yd);}
+    });
+    return {fwRate:fwDen?fwOn/fwDen*100:NaN,p3Rate:p3Den?p3On/p3Den*100:NaN,avgGreenDistance:greenDists.length?greenDists.reduce((a,b)=>a+b,0)/greenDists.length:NaN,parOnRate:parDen?parOn/parDen*100:NaN,bogeyOnRate:parDen?bogeyOn/parDen*100:NaN};
+}
+function createHoleScoreTable(round){
+    const wrapper=document.createElement("div");wrapper.className="hole-table-wrapper";
+    const table=document.createElement("table");table.className="hole-score-table hole-score-table-advanced";
+    const thead=document.createElement("thead");thead.innerHTML=`<tr><th>HOLE</th><th>PAR</th><th>SCORE</th><th>PUTT</th><th>OB</th><th>1P</th><th>B</th><th>TEE</th><th>方向</th></tr>`;
+    const tbody=document.createElement("tbody"); const holes=Array.isArray(round?.holes)?round.holes:[];
+    holes.forEach(hole=>{
+        const shots=historyShots(hole),tee=shots[0]||{}; const row=document.createElement("tr"); const scoreClass=getHoleScoreClass(hole);
+        row.innerHTML=`<td>${escapeHtml(String(hole.hole??"-"))}</td><td>${escapeHtml(String(hole.par??"-"))}</td><td class="${scoreClass}">${escapeHtml(String(hole.score??"-"))}</td><td>${escapeHtml(String(hole.putts??"-"))}</td><td>${historyPenaltyCount(hole,"ob","ob")}</td><td>${historyPenaltyCount(hole,"onePenalty","onePenalty")}</td><td>${historyPenaltyCount(hole,"bunker","bunker")}</td><td>${escapeHtml(tee.clubId?historyClubName(tee.clubId):"-")}</td><td>${escapeHtml(historyLandingLabel(tee.landing))}</td>`;
+        tbody.appendChild(row);
+    });
+    table.append(thead,tbody);wrapper.appendChild(table);return wrapper;
+}
+function createRoundAnalysis(round){
+    const wrapper=document.createElement("section");wrapper.className="round-single-analysis";
+    const stats=historyRoundAdvancedStats(round);
+    const fmt=v=>Number.isFinite(v)?`${v.toFixed(1)}%`:"-";
+    const dist=Number.isFinite(stats.avgGreenDistance)?`${stats.avgGreenDistance.toFixed(1)}yd`:"-";
+    wrapper.innerHTML=`<div class="round-analysis-heading"><h3>このラウンドの集計</h3><p>ティーショットとグリーン到達状況を1ラウンド単位で確認できます。</p></div><div class="round-kpi-grid"><div><span>Par4/5 FWキープ率</span><strong>${fmt(stats.fwRate)}</strong></div><div><span>Par3 1ON率</span><strong>${fmt(stats.p3Rate)}</strong></div><div><span>グリーンON時 平均距離</span><strong>${dist}</strong></div><div><span>パーオン率</span><strong>${fmt(stats.parOnRate)}</strong></div><div><span>ボギーオン率</span><strong>${fmt(stats.bogeyOnRate)}</strong></div></div>`;
+    return wrapper;
+}

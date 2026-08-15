@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.23 - analysis.js
+// ScoreCraft Ver1.3.25 - analysis.js
 // ============================================
 "use strict";
 
@@ -34,11 +34,11 @@ function loadAnalysisRounds(){
 function renderAnalysis(){
     const count=document.getElementById("analysisRoundCount"); if(count) count.textContent=`${analysisRounds.length}回`;
     if(!analysisRounds.length){ renderEmptyAnalysis(); return; }
-    renderSummary(); renderScoreChart(); renderThreeHoleAnalysis(); renderShotAnalysis(); renderPuttDistanceAnalysis();
+    renderSummary(); renderScoreChart(); renderThreeHoleAnalysis(); renderShotAnalysis(); renderPuttDistanceAnalysis(); renderPuttTrendChart();
 }
 function renderEmptyAnalysis(){
     const empty=`<div class="empty-state compact"><p>分析できるラウンドがまだありません。</p><button class="btn" type="button" onclick="location.href='round.html'">⛳ ラウンドを入力</button></div>`;
-    ["analysisSummary","scoreChartArea","threeHoleAnalysis","shotAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
+    ["analysisSummary","scoreChartArea","threeHoleAnalysis","shotAnalysis","puttDistanceAnalysis","puttTrendArea"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
 }
 function renderSummary(){
     const scores=analysisRounds.map(getRoundScore), totalPutts=sumHoleValue("putts"), totalOb=sumHoleValue("ob"), totalBunker=sumHoleValue("bunker");
@@ -337,7 +337,7 @@ function roundedRect(c,x,y,w,h,r){
 function getRoundPutts(round){return getHoles(round).reduce((s,h)=>s+(Number.isFinite(Number(h?.putts))?Number(h.putts):0),0);}
 function getRoundAverageDistance(round){const vals=getHoles(round).map(h=>Number(h?.greenDistance?.value)).filter(v=>Number.isFinite(v)&&v>=0);return vals.length?average(vals):NaN;}
 function formatAxisValue(v,label){return label==="平均距離"?v.toFixed(1):String(Math.round(v));}
-function handleChartResize(){clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(analysisRounds.length){renderScoreChart();renderPuttDistanceAnalysis();}},120);}
+function handleChartResize(){clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(analysisRounds.length){renderScoreChart();renderPuttDistanceAnalysis();renderPuttTrendChart();}},120);}
 function sumHoleValue(key){return analysisRounds.reduce((rt,r)=>rt+getHoles(r).reduce((ht,h)=>{const v=Number(h?.[key]);return ht+(Number.isFinite(v)?v:0);},0),0);}
 function getHoles(round){return Array.isArray(round?.holes)?round.holes:[];}
 function getRoundScore(round){const total=Number(round?.total);if(Number.isFinite(total)&&total>0)return total;return getHoles(round).reduce((s,h)=>s+(Number.isFinite(Number(h?.score))?Number(h.score):0),0);}
@@ -350,3 +350,53 @@ function average(v){return v.length?v.reduce((s,n)=>s+n,0)/v.length:0;}
 function formatDecimal(v){return Number.isFinite(v)?v.toFixed(1):"0.0";}
 function formatChartDate(value){if(!value)return"-";const d=new Date(`${value}T00:00:00`);return Number.isNaN(d.getTime())?"-":`${d.getMonth()+1}/${d.getDate()}`;}
 function escapeHtml(value){return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+
+
+// ===== Ver1.3.24 trend/stat overrides =====
+function analysisHoleShots(hole){
+    if(Array.isArray(hole?.shots)&&hole.shots.length)return hole.shots;
+    const result=[];
+    if(hole?.teeShot&&(hole.teeShot.clubId||hole.teeShot.direction))result.push({landing:hole.teeShot.direction||"",targetYards:null});
+    if(hole?.approachShot&&(hole.approachShot.clubId||hole.approachShot.distanceYards!==null))result.push({landing:hole.approachShot.greenOn===true?"green":"",targetYards:hole.approachShot.distanceYards});
+    return result;
+}
+function analysisFirstGreenShotNo(hole){
+    // Ver1.3.25: グリーンON打数はスコア - パット数で統一する。
+    const score=Number(hole?.score);
+    const putts=Number(hole?.putts);
+    if(!Number.isFinite(score)||!Number.isFinite(putts)||score<=0||putts<0)return null;
+    const greenOnStroke=score-putts;
+    return greenOnStroke>=1?greenOnStroke:null;
+}
+function getRoundOnRates(round){
+    let den=0,parOn=0,bogeyOn=0;getHoles(round).forEach(h=>{const par=Number(h?.par);if(!Number.isFinite(par))return;den++;const n=analysisFirstGreenShotNo(h);if(Number.isFinite(n)){if(n<=par-2)parOn++;if(n<=par-1)bogeyOn++;}});
+    return {parOn:den?parOn/den*100:NaN,bogeyOn:den?bogeyOn/den*100:NaN};
+}
+function renderScoreChart(){
+    const canvas=document.getElementById("scoreChart");if(!canvas||!canvas.getContext)return;
+    const rounds=analysisRounds.slice(0,10).reverse();const scores=rounds.map(getRoundScore);const rates=rounds.map(getRoundOnRates);const parRates=rates.map(r=>r.parOn),bogeyRates=rates.map(r=>r.bogeyOn);
+    const rect=canvas.parentElement.getBoundingClientRect(),width=Math.max(280,Math.floor(rect.width)),height=Math.round(width*.75),ratio=window.devicePixelRatio||1;
+    canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);canvas.style.width=`${width}px`;canvas.style.height=`${height}px`;const c=canvas.getContext("2d");c.setTransform(ratio,0,0,ratio,0,0);c.clearRect(0,0,width,height);
+    const compact=width<390,left=compact?34:44,right=compact?45:54,top=compact?25:30,bottom=compact?39:50,plotW=width-left-right,plotH=height-top-bottom,plotRight=left+plotW;
+    const scoreScale=makeSeriesScale(scores,{unit:5,steps:5,lowerPadding:5,upperPadding:15,minFloor:0});const axisFont=compact?8:10,labelFont=compact?7.5:10,valueFont=compact?7.5:10;
+    c.font=`${axisFont}px "Yu Gothic UI",sans-serif`;c.textBaseline="middle";
+    for(let i=0;i<=5;i++){const y=top+plotH*i/5,v=scoreScale.max-(scoreScale.max-scoreScale.min)*i/5;c.strokeStyle="#e3e8e4";c.lineWidth=1;c.beginPath();c.moveTo(left,y);c.lineTo(plotRight,y);c.stroke();c.fillStyle="#2E7D32";c.textAlign="right";c.fillText(String(Math.round(v)),left-5,y);}
+    for(let i=0;i<=5;i++){const y=top+plotH*i/5,v=100-20*i;c.fillStyle="#4c5960";c.textAlign="left";c.fillText(`${v}%`,plotRight+5,y);}
+    c.strokeStyle="#2E7D32";c.lineWidth=1.1;c.beginPath();c.moveTo(left,top);c.lineTo(left,top+plotH);c.stroke();c.strokeStyle="#66737a";c.beginPath();c.moveTo(plotRight,top);c.lineTo(plotRight,top+plotH);c.stroke();
+    c.font=`bold ${axisFont}px "Yu Gothic UI",sans-serif`;c.textBaseline="bottom";c.fillStyle="#2E7D32";c.textAlign="left";c.fillText("スコア",left,top-6);c.fillStyle="#66737a";c.textAlign="right";c.fillText("ON率",width-1,top-6);
+    const fixedSlots=10,slot=plotW/fixedSlots,barW=Math.max(8,Math.min(28,slot*.58)),edgeInset=Math.max(barW/2+4,compact?11:14),dataLeft=left+edgeInset,dataPlotW=Math.max(1,plotW-edgeInset*2),fixedStep=dataPlotW/(fixedSlots-1),getX=i=>dataLeft+fixedStep*i;
+    scores.forEach((v,i)=>{if(!Number.isFinite(v))return;const x=getX(i),y=top+(scoreScale.max-v)/(scoreScale.max-scoreScale.min)*plotH,base=top+plotH,h=Math.max(1,base-y),g=c.createLinearGradient(0,y,0,base);g.addColorStop(0,"#58b54d");g.addColorStop(1,"#2f8c32");c.fillStyle=g;roundedRect(c,x-barW/2,y,barW,h,3);c.fill();c.fillStyle="#247a2a";c.font=`bold ${valueFont}px "Yu Gothic UI",sans-serif`;c.textAlign="center";c.textBaseline="bottom";c.fillText(String(Math.round(v)),x,y-3);});
+    const percentScale={min:0,max:100};drawLineSeriesFixedSlots(c,parRates,percentScale,"#2367d7",dataLeft,top,fixedStep,plotH,0,true,valueFont);drawLineSeriesFixedSlots(c,bogeyRates,percentScale,"#f26a13",dataLeft,top,fixedStep,plotH,0,true,valueFont);
+    c.fillStyle="#5f6c64";c.font=`${labelFont}px "Yu Gothic UI",sans-serif`;c.textAlign="center";c.textBaseline="top";rounds.forEach((r,i)=>c.fillText(formatChartDate(r.date),getX(i),top+plotH+8));c.fillStyle="#526058";c.font=`${compact?8:10}px "Yu Gothic UI",sans-serif`;c.fillText("ラウンド",left+plotW/2,height-13);
+}
+function renderPuttTrendChart(){
+    const area=document.getElementById("puttTrendArea"),canvas=document.getElementById("puttTrendChart");if(!area||!canvas||!canvas.getContext)return;
+    const rounds=analysisRounds.slice(0,10).reverse();const putts=rounds.map(getRoundPutts),distances=rounds.map(getRoundAverageDistance);
+    const rect=canvas.parentElement.getBoundingClientRect(),width=Math.max(280,Math.floor(rect.width)),height=Math.round(width*.75),ratio=window.devicePixelRatio||1;canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);canvas.style.width=`${width}px`;canvas.style.height=`${height}px`;const c=canvas.getContext("2d");c.setTransform(ratio,0,0,ratio,0,0);c.clearRect(0,0,width,height);
+    const compact=width<390,left=compact?34:44,right=compact?48:58,top=compact?25:30,bottom=compact?39:50,plotW=width-left-right,plotH=height-top-bottom,plotRight=left+plotW,axisFont=compact?8:10,valueFont=compact?7.5:10,labelFont=compact?7.5:10;
+    const pScale=makeSeriesScale(putts,{unit:2,steps:5,lowerPadding:4,upperPadding:4,minFloor:0}),dScale=makeSeriesScale(distances,{unit:.5,steps:5,lowerPadding:1,upperPadding:1,minFloor:0});
+    c.font=`${axisFont}px "Yu Gothic UI",sans-serif`;c.textBaseline="middle";for(let i=0;i<=5;i++){const y=top+plotH*i/5,pv=pScale.max-(pScale.max-pScale.min)*i/5,dv=dScale.max-(dScale.max-dScale.min)*i/5;c.strokeStyle="#e3e8e4";c.beginPath();c.moveTo(left,y);c.lineTo(plotRight,y);c.stroke();c.fillStyle="#2367d7";c.textAlign="right";c.fillText(String(Math.round(pv)),left-5,y);c.fillStyle="#f26a13";c.textAlign="left";c.fillText(dv.toFixed(1),plotRight+5,y);}
+    c.strokeStyle="#2367d7";c.beginPath();c.moveTo(left,top);c.lineTo(left,top+plotH);c.stroke();c.strokeStyle="#f26a13";c.beginPath();c.moveTo(plotRight,top);c.lineTo(plotRight,top+plotH);c.stroke();c.font=`bold ${axisFont}px "Yu Gothic UI",sans-serif`;c.textBaseline="bottom";c.fillStyle="#2367d7";c.textAlign="left";c.fillText("総パット",left,top-6);c.fillStyle="#f26a13";c.textAlign="right";c.fillText("平均距離",width-1,top-6);
+    const fixedSlots=10,edgeInset=compact?11:14,dataLeft=left+edgeInset,dataPlotW=Math.max(1,plotW-edgeInset*2),step=dataPlotW/(fixedSlots-1);drawLineSeriesFixedSlots(c,putts,pScale,"#2367d7",dataLeft,top,step,plotH,0,true,valueFont);drawLineSeriesFixedSlots(c,distances,dScale,"#f26a13",dataLeft,top,step,plotH,1,true,valueFont);
+    c.fillStyle="#5f6c64";c.font=`${labelFont}px "Yu Gothic UI",sans-serif`;c.textAlign="center";c.textBaseline="top";rounds.forEach((r,i)=>c.fillText(formatChartDate(r.date),dataLeft+step*i,top+plotH+8));c.fillStyle="#526058";c.font=`${compact?8:10}px "Yu Gothic UI",sans-serif`;c.fillText("ラウンド",left+plotW/2,height-13);
+}
