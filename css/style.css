@@ -1850,3 +1850,21 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
 .auto-backup-actions button:disabled {
     opacity: 0.5;
 }
+
+
+/* Ver1.3.21 - per-shot compact entry */
+.compact-shots-section{padding:8px 8px 7px}
+.shot-grid{display:grid;grid-template-columns:24px minmax(72px,1.35fr) minmax(58px,.85fr) 48px 54px;gap:5px;align-items:center;width:100%}
+.shot-grid-header{margin:0 0 4px;font-size:10px;font-weight:700;color:#667085;text-align:center}
+.shot-grid-row{margin:4px 0}
+.shot-number{text-align:center;font-size:13px;color:#2e7d32}
+.shot-grid-row select,.shot-grid-row input,.shot-flick-control{box-sizing:border-box;width:100%;height:36px;min-height:36px;margin:0;border-radius:8px;font-size:16px!important}
+.shot-grid-row select{padding:0 4px}
+.shot-grid-row input{text-align:center;padding:0 3px}
+.shot-cell{min-width:0}
+.shot-flick-control{padding:0 3px;font-weight:800;touch-action:none}
+.penalty-flick{font-size:14px!important}
+.shot-flick-hint{margin-top:5px;font-size:9px;line-height:1.25;text-align:center;color:#7a7f87}
+@media(max-width:390px){.shot-grid{grid-template-columns:20px minmax(68px,1.3fr) 55px 44px 50px;gap:3px}.compact-shots-section{padding-left:5px;padding-right:5px}.shot-grid-row select,.shot-grid-row input,.shot-flick-control{height:34px;min-height:34px}}
+/* iOS Safari: editable controls stay >=16px to avoid focus zoom */
+.round-page input,.round-page select,.round-page textarea{font-size:16px!important}

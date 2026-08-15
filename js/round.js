@@ -472,6 +472,13 @@ function createEmptyHole(number) {
 
         },
 
+        shots: Array.from({ length: 5 }, () => ({
+            clubId: "",
+            targetYards: null,
+            landing: "",
+            penalty: ""
+        })),
+
         ob: 0,
 
         onePenalty: 0,
@@ -569,6 +576,30 @@ function normalizeRoundData() {
             hole.approachShot.clubId = hole.approachShot.clubId || "";
             hole.approachShot.distanceYards = hole.approachShot.distanceYards === null || hole.approachShot.distanceYards === "" ? null : Number(hole.approachShot.distanceYards);
             hole.approachShot.greenOn = typeof hole.approachShot.greenOn === "boolean" ? hole.approachShot.greenOn : null;
+
+            if (!Array.isArray(hole.shots)) hole.shots = [];
+            hole.shots = Array.from({ length: 5 }, (_, shotIndex) => {
+                const source = hole.shots[shotIndex] || {};
+                return {
+                    clubId: source.clubId || "",
+                    targetYards: source.targetYards === null || source.targetYards === "" || source.targetYards === undefined ? null : Number(source.targetYards),
+                    landing: source.landing || "",
+                    penalty: source.penalty || ""
+                };
+            });
+            // Ver1.3.20以前のデータは、可能な範囲で1打目/グリーン狙いへ引き継ぐ。
+            if (!hole.shots.some(s => s.clubId || s.targetYards !== null || s.landing || s.penalty)) {
+                if (hole.teeShot && (hole.teeShot.clubId || hole.teeShot.direction)) {
+                    hole.shots[0].clubId = hole.teeShot.clubId || "";
+                    hole.shots[0].landing = hole.teeShot.direction || "";
+                }
+                if (hole.approachShot && (hole.approachShot.clubId || hole.approachShot.distanceYards !== null || hole.approachShot.greenOn !== null)) {
+                    const idx = hole.shots[0].clubId ? 1 : 0;
+                    hole.shots[idx].clubId = hole.approachShot.clubId || hole.shots[idx].clubId;
+                    hole.shots[idx].targetYards = hole.approachShot.distanceYards;
+                    if (hole.approachShot.greenOn === true) hole.shots[idx].landing = "green";
+                }
+            }
 
             hole.ob =
                 Number(hole.ob || 0);
@@ -1663,24 +1694,12 @@ function renderInputArea(hole) {
     }
     area.appendChild(primary);
 
-    // ティーショット：クラブ + 着弾フリック + 球筋フリック。
-    if (enabled.teeClub || enabled.direction || enabled.curve) {
-        area.appendChild(createCompactTeeSection(hole, enabled));
-    }
+    // Ver1.3.21: 1打目〜5打目を同じ形式で記録。
+    area.appendChild(createCompactShotsSection(hole));
 
-    // グリーンを狙ったショット。
-    if (enabled.approachShot) {
-        area.appendChild(createCompactApproachSection(hole));
-    }
-
-    // パット距離（設定で有効な場合のみ）。
+    // パット距離は従来どおり残す。
     if (enabled.greenDistance) {
         area.appendChild(createCompactPuttingSection(hole));
-    }
-
-    // OB / 1ペナ / バンカーは1段にまとめる。
-    if (enabled.ob || enabled.onePenalty || enabled.bunker) {
-        area.appendChild(createCompactPenaltyArea(hole));
     }
 
     if (enabled.memo) {
@@ -1907,6 +1926,96 @@ function createCurveFlickField(hole) {
         options:{left:{label:"←"},right:{label:"→"}}
     });
     field.appendChild(button); return field;
+}
+
+function ensureFiveShots(hole) {
+    if (!Array.isArray(hole.shots)) hole.shots = [];
+    while (hole.shots.length < 5) hole.shots.push({ clubId:"", targetYards:null, landing:"", penalty:"" });
+    hole.shots = hole.shots.slice(0,5);
+    return hole.shots;
+}
+
+function shotLandingDisplay(value) {
+    return ({left:"←", fairway:"・", green:"・", right:"→", over:"↑", short:"↓"})[value] || "・";
+}
+
+function shotPenaltyDisplay(value) {
+    return ({ob:"OB", onePenalty:"1P", bunker:"B", woods:"林"})[value] || "—";
+}
+
+function syncLegacyFieldsFromShots(hole) {
+    const shots=ensureFiveShots(hole);
+    const first=shots[0]||{};
+    hole.teeShot=hole.teeShot||{clubId:"",direction:"",curve:""};
+    hole.teeShot.clubId=first.clubId||"";
+    hole.teeShot.direction=first.landing||"";
+    const greenShot=shots.find(s=>s.landing==="green") || shots.find((s,i)=>i>0 && (s.clubId || s.targetYards!==null));
+    hole.approachShot=hole.approachShot||{clubId:"",distanceYards:null,greenOn:null};
+    if(greenShot){
+        hole.approachShot.clubId=greenShot.clubId||"";
+        hole.approachShot.distanceYards=greenShot.targetYards;
+        hole.approachShot.greenOn=greenShot.landing==="green" ? true : null;
+    } else {
+        hole.approachShot.clubId=""; hole.approachShot.distanceYards=null; hole.approachShot.greenOn=null;
+    }
+    hole.ob=shots.filter(s=>s.penalty==="ob").length;
+    hole.onePenalty=shots.filter(s=>s.penalty==="onePenalty").length;
+    hole.bunker=shots.filter(s=>s.penalty==="bunker").length;
+}
+
+function createShotLandingFlickField(hole, shot) {
+    const field=document.createElement("div"); field.className="shot-cell shot-flick-cell";
+    const button=document.createElement("button"); button.type="button"; button.className="flick-control shot-flick-control";
+    button.textContent=shotLandingDisplay(shot.landing);
+    if(shot.landing) button.classList.add("selected");
+    const center=()=>{shot.landing=(shot.targetYards!==null && shot.targetYards<=250)?"green":"fairway";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();};
+    attachFlickGesture(button,{
+        tap:center,
+        left:()=>{shot.landing="left";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        right:()=>{shot.landing="right";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        up:()=>{shot.landing="over";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        down:()=>{shot.landing="short";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();}
+    },{centerLabel:"・",options:{left:{label:"←"},right:{label:"→"},up:{label:"↑"},down:{label:"↓"}}});
+    field.appendChild(button); return field;
+}
+
+function createShotPenaltyFlickField(hole, shot) {
+    const field=document.createElement("div"); field.className="shot-cell shot-flick-cell";
+    const button=document.createElement("button"); button.type="button"; button.className="flick-control shot-flick-control penalty-flick";
+    button.textContent=shotPenaltyDisplay(shot.penalty);
+    if(shot.penalty) button.classList.add("selected");
+    attachFlickGesture(button,{
+        tap:()=>{shot.penalty="";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        up:()=>{shot.penalty="ob";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        right:()=>{shot.penalty="onePenalty";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        down:()=>{shot.penalty="bunker";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
+        left:()=>{shot.penalty="woods";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();}
+    },{centerLabel:"なし",options:{up:{label:"OB"},right:{label:"1P"},down:{label:"B"},left:{label:"林"}}});
+    field.appendChild(button); return field;
+}
+
+function createCompactShotsSection(hole) {
+    const shots=ensureFiveShots(hole);
+    const section=createCompactSection("SHOT","compact-shots-section");
+    const header=document.createElement("div"); header.className="shot-grid shot-grid-header";
+    ["打","Club","狙いyd","着弾","Penalty"].forEach(t=>{const el=document.createElement("span");el.textContent=t;header.appendChild(el);});
+    section.appendChild(header);
+    shots.forEach((shot,index)=>{
+        const row=document.createElement("div"); row.className="shot-grid shot-grid-row";
+        const num=document.createElement("strong"); num.className="shot-number"; num.textContent=String(index+1); row.appendChild(num);
+        const club=document.createElement("select"); club.className="shot-club";
+        const empty=document.createElement("option");empty.value="";empty.textContent="-";club.appendChild(empty);
+        roundState.selectedClubIds.filter(id=>normalizeClubId(id)!=="putter").forEach(clubId=>{const o=document.createElement("option");o.value=normalizeClubId(clubId);o.textContent=getClubDisplayName(clubId);club.appendChild(o);});
+        club.value=normalizeClubId(shot.clubId||"");
+        club.addEventListener("change",e=>{shot.clubId=e.target.value;syncLegacyFieldsFromShots(hole);saveDraftRound();}); row.appendChild(club);
+        const yards=document.createElement("input"); yards.className="shot-yards"; yards.type="number"; yards.inputMode="numeric"; yards.min="0"; yards.max="999"; yards.step="1"; yards.placeholder="-"; yards.value=shot.targetYards??"";
+        yards.addEventListener("input",e=>{shot.targetYards=e.target.value===""?null:Number(e.target.value);syncLegacyFieldsFromShots(hole);saveDraftRound();}); row.appendChild(yards);
+        row.appendChild(createShotLandingFlickField(hole,shot));
+        row.appendChild(createShotPenaltyFlickField(hole,shot));
+        section.appendChild(row);
+    });
+    const guide=document.createElement("div");guide.className="shot-flick-hint";guide.textContent="長押し→方向へフリック　着弾：← ・ → ↑ ↓　Penalty：←林 ↑OB →1P ↓B";section.appendChild(guide);
+    return section;
 }
 
 function createCompactTeeSection(hole, enabled) {

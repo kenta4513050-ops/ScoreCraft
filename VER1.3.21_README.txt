@@ -1,0 +1,12 @@
+ScoreCraft Ver1.3.21
+
+- ラウンド集計のOUT/IN表記を前半/後半へ変更
+- PAR/SCORE/PUTTの下を1打目〜5打目のショット入力へ刷新
+- 各打：使用クラブ、狙いyd、着弾フリック、ペナルティフリック
+- 着弾：左 / FWキープ・グリーンON / 右 / 奥 / 手前
+- ペナルティ：OB / 1ペナ / バンカー / 林
+- GREEN専用入力欄を削除
+- PUTTING残り距離は維持
+- 数値入力はiPhone Safariの自動ズームを抑制する16px入力
+- 旧teeShot/approachShot/OB等へ同期し既存分析との互換性を維持
+- PWA cache: scorecraft-v1.3.21
