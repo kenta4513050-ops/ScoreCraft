@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.16 - analysis.js
+// ScoreCraft Ver1.3.22 - analysis.js
 // ============================================
 "use strict";
 
@@ -34,11 +34,11 @@ function loadAnalysisRounds(){
 function renderAnalysis(){
     const count=document.getElementById("analysisRoundCount"); if(count) count.textContent=`${analysisRounds.length}回`;
     if(!analysisRounds.length){ renderEmptyAnalysis(); return; }
-    renderSummary(); renderScoreChart(); renderThreeHoleAnalysis(); renderClubAnalysis(); renderGreenOnAnalysis(); renderPuttDistanceAnalysis();
+    renderSummary(); renderScoreChart(); renderThreeHoleAnalysis(); renderShotAnalysis(); renderPuttDistanceAnalysis();
 }
 function renderEmptyAnalysis(){
     const empty=`<div class="empty-state compact"><p>分析できるラウンドがまだありません。</p><button class="btn" type="button" onclick="location.href='round.html'">⛳ ラウンドを入力</button></div>`;
-    ["analysisSummary","scoreChartArea","threeHoleAnalysis","clubAnalysis","greenOnAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
+    ["analysisSummary","scoreChartArea","threeHoleAnalysis","shotAnalysis","puttDistanceAnalysis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
 }
 function renderSummary(){
     const scores=analysisRounds.map(getRoundScore), totalPutts=sumHoleValue("putts"), totalOb=sumHoleValue("ob"), totalBunker=sumHoleValue("bunker");
@@ -75,69 +75,62 @@ function renderThreeHoleAnalysis(){
     }).join("")}</div>`;
 }
 
-function renderClubAnalysis(){
-    const groups=[{key:"long",title:"Par4・5",match:par=>par===4||par===5},{key:"par3",title:"Par3",match:par=>par===3}];
-    const container=document.getElementById("clubAnalysis");
-    const html=groups.map(group=>{
-        const clubMap={}; let total=0;
-        analysisRounds.forEach(round=>getHoles(round).forEach(hole=>{
-            const par=Number(hole?.par), clubId=String(hole?.teeShot?.clubId||"").trim();
-            if(!group.match(par)||!clubId) return;
-            total++; if(!clubMap[clubId]) clubMap[clubId]={count:0,directions:{left:0,right:0,center:0,short:0,over:0},curves:{left:0,straight:0,right:0}};
-            clubMap[clubId].count++;
-            const d=normalizeDirection(hole?.teeShot?.direction); if(d) clubMap[clubId].directions[d]++;
-            const curve=normalizeCurve(hole?.teeShot?.curve); if(curve) clubMap[clubId].curves[curve]++;
-        }));
-        const sorted=Object.entries(clubMap).sort((a,b)=>b[1].count-a[1].count);
-        return `<div class="club-par-group"><h3>${group.title}</h3>${!total?`<div class="empty-state compact"><p>使用クラブの入力データがありません。</p></div>`:`<div class="club-analysis-list">${sorted.map(([id,data])=>{
-            const pct=Math.round(data.count/total*100); const detailId=`club-detail-${group.key}-${safeId(id)}`;
-            return `<div class="club-analysis-item"><button class="club-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div class="club-analysis-heading"><strong>${escapeHtml(getClubName(id))}</strong><span>${pct}% <small>(${data.count}回)</small></span></div><div class="analysis-progress"><span style="width:${pct}%"></span></div><small class="club-tap-hint">タップして方向割合を表示</small></button><div id="${detailId}" class="club-direction-detail" hidden>${renderDirectionDetail(data.directions,data.curves)}</div></div>`;
-        }).join("")}</div>`}</div>`;
-    }).join("");
-    container.innerHTML=html;
-    container.querySelectorAll(".club-analysis-button").forEach(button=>button.addEventListener("click",()=>{
-        const detail=document.getElementById(button.getAttribute("aria-controls")); const open=button.getAttribute("aria-expanded")==="true";
-        button.setAttribute("aria-expanded",String(!open)); detail.hidden=open;
-    }));
-}
-function renderDirectionDetail(counts,curves){
-    const total=Object.values(counts).reduce((s,v)=>s+v,0);
-    const curveTotal=Object.values(curves||{}).reduce((s,v)=>s+v,0);
-    const landing=total?`<h4 class="analysis-mini-heading">着弾方向</h4><div class="club-direction-grid">${DIRECTION_ITEMS.map(([key,label])=>{const count=counts[key]||0,pct=Math.round(count/total*100);return `<div><span>${label}</span><strong>${pct}%</strong><small>${count}回</small></div>`;}).join("")}</div>`:`<p class="analysis-note">着弾方向データがありません。</p>`;
-    const curve=curveTotal?`<h4 class="analysis-mini-heading">曲がり方向</h4><div class="club-direction-grid curve-analysis-grid">${CURVE_ITEMS.map(([key,label])=>{const count=curves[key]||0,pct=Math.round(count/curveTotal*100);return `<div><span>${label}</span><strong>${pct}%</strong><small>${count}回</small></div>`;}).join("")}</div>`:`<p class="analysis-note">曲がり方向データがありません。</p>`;
-    return landing+curve;
-}
-
-function renderGreenOnAnalysis(){
-    const container=document.getElementById("greenOnAnalysis");
-    if(!container)return;
-    const shots=[];
+function getAnalysisShots(){
+    const result=[];
     analysisRounds.forEach(round=>getHoles(round).forEach(hole=>{
-        const a=hole?.approachShot;
-        const clubId=String(a?.clubId||"").trim();
-        const distance=Number(a?.distanceYards);
-        const greenOn=typeof a?.greenOn==="boolean"?a.greenOn:null;
-        if(greenOn===null)return;
-        shots.push({clubId,distance:Number.isFinite(distance)?distance:null,greenOn});
+        if(Array.isArray(hole?.shots) && hole.shots.length){
+            hole.shots.forEach((shot,index)=>{
+                const clubId=String(shot?.clubId||"").trim();
+                const targetRaw=shot?.targetYards;
+                const targetYards=(targetRaw===null||targetRaw===""||targetRaw===undefined)?null:Number(targetRaw);
+                const landing=normalizeShotLanding(shot?.landing);
+                const penalty=String(shot?.penalty||"").trim();
+                if(!clubId && !Number.isFinite(targetYards) && !landing && !penalty) return;
+                result.push({round,hole:Number(hole?.hole)||null,shotNo:index+1,clubId,targetYards:Number.isFinite(targetYards)&&targetYards>0?targetYards:null,landing,penalty});
+            });
+            return;
+        }
+        const tee=hole?.teeShot;
+        if(tee && (tee.clubId||tee.direction)) result.push({round,hole:Number(hole?.hole)||null,shotNo:1,clubId:String(tee.clubId||"").trim(),targetYards:null,landing:normalizeShotLanding(tee.direction),penalty:""});
+        const a=hole?.approachShot; const legacyDistance=Number(a?.distanceYards);
+        if(a && (a.clubId || Number.isFinite(legacyDistance))) result.push({round,hole:Number(hole?.hole)||null,shotNo:null,clubId:String(a.clubId||"").trim(),targetYards:Number.isFinite(legacyDistance)&&legacyDistance>0?legacyDistance:null,landing:a.greenOn===true?"green":(a.greenOn===false?"miss":""),penalty:""});
     }));
-    if(!shots.length){container.innerHTML=`<div class="empty-state compact"><p>グリーン狙いの入力データがありません。</p></div>`;return;}
-
-    const clubMap={};
-    shots.filter(s=>s.clubId).forEach(s=>{if(!clubMap[s.clubId])clubMap[s.clubId]={attempts:0,on:0};clubMap[s.clubId].attempts++;if(s.greenOn)clubMap[s.clubId].on++;});
-    const clubs=Object.entries(clubMap).sort((a,b)=>b[1].attempts-a[1].attempts);
-    const distanceBuckets=[
-        {label:"〜50yd",min:0,max:50},{label:"51〜75yd",min:51,max:75},{label:"76〜100yd",min:76,max:100},
-        {label:"101〜125yd",min:101,max:125},{label:"126〜150yd",min:126,max:150},{label:"151〜175yd",min:151,max:175},
-        {label:"176〜200yd",min:176,max:200},{label:"201yd〜",min:201,max:Infinity}
-    ].map(b=>({...b,attempts:0,on:0}));
-    shots.filter(s=>Number.isFinite(s.distance)).forEach(s=>{const b=distanceBuckets.find(x=>s.distance>=x.min&&s.distance<=x.max);if(b){b.attempts++;if(s.greenOn)b.on++;}});
-
-    const renderRows=items=>items.map(item=>{const data=item.data||item;const pct=data.attempts?Math.round(data.on/data.attempts*100):0;return `<div class="gir-row"><div class="gir-row-head"><strong>${escapeHtml(item.label||"")}</strong><span>${pct}% <small>(${data.on}/${data.attempts})</small></span></div><div class="analysis-progress"><span style="width:${pct}%"></span></div></div>`;}).join("");
-    const clubHtml=clubs.length?renderRows(clubs.map(([id,data])=>({label:getClubName(id),data}))):`<p class="analysis-note">番手データがありません。</p>`;
-    const distItems=distanceBuckets.filter(b=>b.attempts).map(b=>({label:b.label,data:b}));
-    const distHtml=distItems.length?renderRows(distItems):`<p class="analysis-note">残りヤードデータがありません。</p>`;
-    container.innerHTML=`<div class="gir-analysis-grid"><section><h3>番手別グリーンオン率</h3>${clubHtml}</section><section><h3>距離別グリーンオン率</h3>${distHtml}</section></div><p class="analysis-note">率の右側は「グリーンオン数 / 試行数」です。</p>`;
+    return result;
 }
+function renderShotAnalysis(){
+    const container=document.getElementById("shotAnalysis"); if(!container)return;
+    const shots=getAnalysisShots(); const clubShots=shots.filter(s=>s.clubId); const girShots=shots.filter(s=>Number.isFinite(s.targetYards));
+    if(!clubShots.length && !girShots.length){container.innerHTML=`<div class="empty-state compact"><p>ショット分析に使えるデータがまだありません。</p></div>`;return;}
+    const clubMap={};
+    clubShots.forEach(shot=>{
+        if(!clubMap[shot.clubId]) clubMap[shot.clubId]={count:0,landing:{left:0,center:0,right:0,short:0,over:0},girAttempts:0,girOn:0};
+        const data=clubMap[shot.clubId]; data.count++; const direction=landingDirectionKey(shot.landing); if(direction)data.landing[direction]++;
+        if(Number.isFinite(shot.targetYards)){data.girAttempts++; if(isGreenOnShot(shot))data.girOn++;}
+    });
+    const clubEntries=Object.entries(clubMap).sort((a,b)=>b[1].count-a[1].count);
+    const clubHtml=clubEntries.length?`<div class="shot-analysis-list">${clubEntries.map(([clubId,data])=>{const detailId=`shot-club-${safeId(clubId)}`; const girPct=data.girAttempts?Math.round(data.girOn/data.girAttempts*100):null; return `<div class="shot-analysis-item"><button class="shot-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div><strong>${escapeHtml(getClubName(clubId))}</strong><small>${data.count}ショット</small></div><span>${girPct===null?"GIR —":`GIR ${girPct}%`}</span></button><div id="${detailId}" class="shot-analysis-detail" hidden>${renderShotClubDetail(data)}</div></div>`;}).join("")}</div>`:`<p class="analysis-note">クラブデータがありません。</p>`;
+    const yardBuckets=[{label:"〜50yd",min:1,max:50},{label:"51〜75yd",min:51,max:75},{label:"76〜100yd",min:76,max:100},{label:"101〜125yd",min:101,max:125},{label:"126〜150yd",min:126,max:150},{label:"151〜175yd",min:151,max:175},{label:"176〜200yd",min:176,max:200},{label:"201yd〜",min:201,max:Infinity}].map((bucket,index)=>({...bucket,index,shots:[]}));
+    girShots.forEach(shot=>{const bucket=yardBuckets.find(b=>shot.targetYards>=b.min&&shot.targetYards<=b.max); if(bucket)bucket.shots.push(shot);});
+    const activeBuckets=yardBuckets.filter(b=>b.shots.length);
+    const yardHtml=activeBuckets.length?`<div class="shot-analysis-list">${activeBuckets.map(bucket=>{const on=bucket.shots.filter(isGreenOnShot).length; const pct=Math.round(on/bucket.shots.length*100); const detailId=`shot-yard-${bucket.index}`; return `<div class="shot-analysis-item"><button class="shot-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div><strong>${bucket.label}</strong><small>${bucket.shots.length}ショット</small></div><span>GIR ${pct}%</span></button><div id="${detailId}" class="shot-analysis-detail" hidden>${renderYardDetail(bucket)}</div></div>`;}).join("")}</div>`:`<p class="analysis-note">狙いydが入力されたショットがありません。</p>`;
+    container.innerHTML=`<div class="shot-analysis-grid"><section><h3>① クラブ毎のデータ</h3><p class="analysis-note shot-analysis-intro">クラブをタップすると、着弾方向とグリーンを狙った時のGIRを表示します。</p>${clubHtml}</section><section><h3>② ヤード毎のデータ</h3><p class="analysis-note shot-analysis-intro">距離帯をタップすると、全体と使用番手ごとのGIRを表示します。</p>${yardHtml}</section></div><p class="analysis-note shot-gir-rule">※ GIRの母数は「狙いyd」に数値が入力されているショットだけです。</p>`;
+    container.querySelectorAll('.shot-analysis-button').forEach(button=>button.addEventListener('click',()=>{const detail=document.getElementById(button.getAttribute('aria-controls')); if(!detail)return; const open=button.getAttribute('aria-expanded')==='true'; button.setAttribute('aria-expanded',String(!open)); detail.hidden=open;}));
+}
+function renderShotClubDetail(data){
+    const directionTotal=Object.values(data.landing).reduce((sum,v)=>sum+v,0); const directionItems=[["left","左 ←"],["center","中央 ・"],["right","右 →"],["over","奥 ↑"],["short","手前 ↓"]];
+    const landingHtml=directionTotal?`<h4 class="analysis-mini-heading">着弾方向</h4><div class="club-direction-grid">${directionItems.map(([key,label])=>{const count=data.landing[key]||0; const pct=Math.round(count/directionTotal*100); return `<div><span>${label}</span><strong>${pct}%</strong><small>${count}打</small></div>`;}).join("")}</div>`:`<p class="analysis-note">着弾方向データがありません。</p>`;
+    const girHtml=data.girAttempts?`<h4 class="analysis-mini-heading">グリーンを狙ったショット</h4><div class="shot-gir-summary"><strong>${Math.round(data.girOn/data.girAttempts*100)}%</strong><span>グリーンオン率</span><span>${data.girOn} ON / ${data.girAttempts} 打</span></div>`:`<h4 class="analysis-mini-heading">グリーンを狙ったショット</h4><p class="analysis-note">狙いydが入力されたショットはありません。</p>`;
+    return landingHtml+girHtml;
+}
+function renderYardDetail(bucket){
+    const total=bucket.shots.length,on=bucket.shots.filter(isGreenOnShot).length,clubMap={};
+    bucket.shots.forEach(shot=>{const clubId=shot.clubId||"未選択"; if(!clubMap[clubId])clubMap[clubId]={attempts:0,on:0}; clubMap[clubId].attempts++; if(isGreenOnShot(shot))clubMap[clubId].on++;});
+    const clubs=Object.entries(clubMap).sort((a,b)=>b[1].attempts-a[1].attempts);
+    return `<div class="yard-total-gir"><span>この距離の合計GIR</span><strong>${Math.round(on/total*100)}%</strong><small>${on} ON / ${total} 打</small></div><div class="yard-club-gir-list">${clubs.map(([clubId,data])=>{const pct=Math.round(data.on/data.attempts*100); return `<div class="yard-club-gir-row"><strong>${escapeHtml(clubId==="未選択"?"クラブ未選択":getClubName(clubId))}</strong><span>${pct}%</span><small>${data.on}/${data.attempts}</small></div>`;}).join("")}</div>`;
+}
+function normalizeShotLanding(value){const d=String(value||"").toLowerCase().trim(); if(["left","l","左","←"].includes(d))return"left"; if(["right","r","右","→"].includes(d))return"right"; if(["short","手前","↓"].includes(d))return"short"; if(["over","奥","オーバー","↑"].includes(d))return"over"; if(["green","グリーンオン","on","1on"].includes(d))return"green"; if(["fairway","fw","fwキープ","center","centre","middle","中央","・"].includes(d))return"fairway"; if(["miss","off"].includes(d))return"miss"; return"";}
+function landingDirectionKey(value){const d=normalizeShotLanding(value); if(d==="left")return"left"; if(d==="right")return"right"; if(d==="short")return"short"; if(d==="over")return"over"; if(d==="green"||d==="fairway")return"center"; return"";}
+function isGreenOnShot(shot){return Number.isFinite(shot?.targetYards) && normalizeShotLanding(shot?.landing)==="green";}
 
 function renderPuttDistanceAnalysis(){
     const buckets=[];
@@ -211,7 +204,7 @@ function drawPuttDistanceChart(buckets){
 
 function renderScoreChart(){
     const canvas=document.getElementById("scoreChart"); if(!canvas||!canvas.getContext)return;
-    const rounds=[...analysisRounds].reverse().slice(-10);
+    const rounds=analysisRounds.slice(0,10).reverse();
     const scores=rounds.map(getRoundScore),putts=rounds.map(getRoundPutts),distances=rounds.map(getRoundAverageDistance);
     const rect=canvas.parentElement.getBoundingClientRect();
     const width=Math.max(280,Math.floor(rect.width)),height=Math.round(width*0.75),ratio=window.devicePixelRatio||1; // 縦3：横4
@@ -254,11 +247,13 @@ function renderScoreChart(){
     c.fillStyle="#f26a13"; c.textAlign="right"; c.fillText("距離",width-1,top-6);
 
     // データ点を左右の縦軸から内側へ寄せ、軸・目盛りとの重なりを防ぐ。
-    const slot=plotW/Math.max(rounds.length,1),barW=Math.max(10,Math.min(34,slot*0.55));
-    const edgeInset=Math.max(barW/2+6,compact?14:18);
+    const fixedSlots=10;
+    const slot=plotW/fixedSlots,barW=Math.max(8,Math.min(28,slot*0.58));
+    const edgeInset=Math.max(barW/2+4,compact?11:14);
     const dataLeft=left+edgeInset;
     const dataPlotW=Math.max(1,plotW-edgeInset*2);
-    const getDataX=i=>rounds.length===1?left+plotW/2:dataLeft+dataPlotW*i/(rounds.length-1);
+    const fixedStep=dataPlotW/(fixedSlots-1);
+    const getDataX=i=>dataLeft+fixedStep*i;
 
     // スコアは棒グラフ
     scores.forEach((v,i)=>{
@@ -272,8 +267,8 @@ function renderScoreChart(){
     });
 
     // パット数と平均パット距離は折れ線
-    drawLineSeries(c,putts,puttScale,"#2367d7",dataLeft,top,dataPlotW,plotH,rounds.length,0,true,valueFont);
-    drawLineSeries(c,distances,distanceScale,"#f26a13",dataLeft,top,dataPlotW,plotH,rounds.length,1,true,valueFont);
+    drawLineSeriesFixedSlots(c,putts,puttScale,"#2367d7",dataLeft,top,fixedStep,plotH,0,true,valueFont);
+    drawLineSeriesFixedSlots(c,distances,distanceScale,"#f26a13",dataLeft,top,fixedStep,plotH,1,true,valueFont);
 
     c.fillStyle="#5f6c64"; c.font=`${labelFont}px "Yu Gothic UI",sans-serif`; c.textAlign="center"; c.textBaseline="top";
     rounds.forEach((r,i)=>{const x=getDataX(i);c.fillText(formatChartDate(r.date),x,top+plotH+8);});
@@ -309,6 +304,8 @@ function drawLineSeries(c,values,scale,color,left,top,plotW,plotH,count,decimals
         }
     });
 }
+
+function drawLineSeriesFixedSlots(c,values,scale,color,left,top,step,plotH,decimals,showValues=false,fontSize=9){const pts=values.map((v,i)=>({x:left+step*i,y:Number.isFinite(v)?top+(scale.max-v)/(scale.max-scale.min)*plotH:null,v})); c.strokeStyle=color;c.lineWidth=2.2;c.lineJoin="round";c.lineCap="round";c.beginPath();let started=false;pts.forEach(p=>{if(p.y===null){started=false;return;}if(!started){c.moveTo(p.x,p.y);started=true;}else c.lineTo(p.x,p.y);});c.stroke();pts.forEach((p,i)=>{if(p.y===null)return;c.fillStyle=color;c.strokeStyle="#fff";c.lineWidth=1.2;c.beginPath();c.arc(p.x,p.y,3.5,0,Math.PI*2);c.fill();c.stroke();if(showValues){const offset=i%2===0?-7:12;c.fillStyle=color;c.font=`bold ${fontSize}px "Yu Gothic UI",sans-serif`;c.textAlign="center";c.textBaseline=offset<0?"bottom":"top";c.fillText(Number(p.v).toFixed(decimals),p.x,p.y+offset);}});}
 
 function roundedRect(c,x,y,w,h,r){
     const rr=Math.min(r,w/2,h/2); c.beginPath(); c.moveTo(x+rr,y); c.arcTo(x+w,y,x+w,y+h,rr); c.arcTo(x+w,y+h,x,y+h,rr); c.arcTo(x,y+h,x,y,rr); c.arcTo(x,y,x+w,y,rr); c.closePath();
