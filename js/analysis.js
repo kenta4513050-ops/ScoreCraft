@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.22 - analysis.js
+// ScoreCraft Ver1.3.23 - analysis.js
 // ============================================
 "use strict";
 
@@ -97,18 +97,42 @@ function getAnalysisShots(){
     }));
     return result;
 }
+function getMyClubIdsForAnalysis(){
+    let ids=[];
+    try{
+        const saved=JSON.parse(localStorage.getItem("scorecraft_selected_clubs")||"null");
+        if(Array.isArray(saved)) ids=saved.map(v=>String(v||"").trim()).filter(Boolean);
+    }catch(e){}
+    if(!ids.length && Array.isArray(window.CLUBS)) ids=window.CLUBS.map(c=>String(c?.id||"").trim()).filter(Boolean);
+    return [...new Set(ids)].sort(compareGolfClubOrder);
+}
+function golfClubOrderValue(id){
+    const s=String(id||"").toUpperCase().replace(/\s+/g,"");
+    if(s==="1W"||s==="DR"||s.includes("DRIVER"))return 100;
+    let m=s.match(/^(\d+)W$/);if(m)return 200+Number(m[1]);
+    m=s.match(/^(\d+)(UT|U|H)$/);if(m)return 300+Number(m[1]);
+    m=s.match(/^(\d+)I$/);if(m)return 400+Number(m[1]);
+    if(s==="PW")return 510;if(s==="AW"||s==="GW")return 520;if(s==="SW")return 530;
+    m=s.match(/^(\d+)(?:°|DEG)?$/);if(m)return 500+Number(m[1]);
+    if(s==="PT"||s.includes("PUTTER"))return 900;return 700;
+}
+function compareGolfClubOrder(a,b){const d=golfClubOrderValue(a)-golfClubOrderValue(b);return d||String(a).localeCompare(String(b),"ja",{numeric:true});}
 function renderShotAnalysis(){
     const container=document.getElementById("shotAnalysis"); if(!container)return;
     const shots=getAnalysisShots(); const clubShots=shots.filter(s=>s.clubId); const girShots=shots.filter(s=>Number.isFinite(s.targetYards));
     if(!clubShots.length && !girShots.length){container.innerHTML=`<div class="empty-state compact"><p>ショット分析に使えるデータがまだありません。</p></div>`;return;}
+    const emptyClubData=()=>({count:0,landing:{left:0,center:0,right:0,short:0,over:0},girAttempts:0,girOn:0});
     const clubMap={};
     clubShots.forEach(shot=>{
-        if(!clubMap[shot.clubId]) clubMap[shot.clubId]={count:0,landing:{left:0,center:0,right:0,short:0,over:0},girAttempts:0,girOn:0};
+        if(!clubMap[shot.clubId]) clubMap[shot.clubId]=emptyClubData();
         const data=clubMap[shot.clubId]; data.count++; const direction=landingDirectionKey(shot.landing); if(direction)data.landing[direction]++;
         if(Number.isFinite(shot.targetYards)){data.girAttempts++; if(isGreenOnShot(shot))data.girOn++;}
     });
-    const clubEntries=Object.entries(clubMap).sort((a,b)=>b[1].count-a[1].count);
-    const clubHtml=clubEntries.length?`<div class="shot-analysis-list">${clubEntries.map(([clubId,data])=>{const detailId=`shot-club-${safeId(clubId)}`; const girPct=data.girAttempts?Math.round(data.girOn/data.girAttempts*100):null; return `<div class="shot-analysis-item"><button class="shot-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div><strong>${escapeHtml(getClubName(clubId))}</strong><small>${data.count}ショット</small></div><span>${girPct===null?"GIR —":`GIR ${girPct}%`}</span></button><div id="${detailId}" class="shot-analysis-detail" hidden>${renderShotClubDetail(data)}</div></div>`;}).join("")}</div>`:`<p class="analysis-note">クラブデータがありません。</p>`;
+    const myClubIds=getMyClubIdsForAnalysis();
+    const extraUsedIds=Object.keys(clubMap).filter(id=>!myClubIds.includes(id));
+    const orderedClubIds=[...myClubIds,...extraUsedIds.sort(compareGolfClubOrder)];
+    const clubEntries=orderedClubIds.map(id=>[id,clubMap[id]||emptyClubData()]);
+    const clubHtml=clubEntries.length?`<div class="shot-analysis-list">${clubEntries.map(([clubId,data])=>{const detailId=`shot-club-${safeId(clubId)}`; const girPct=data.girAttempts?Math.round(data.girOn/data.girAttempts*100):null; return `<div class="shot-analysis-item"><button class="shot-analysis-button" type="button" aria-expanded="false" aria-controls="${detailId}"><div><strong>${escapeHtml(getClubName(clubId))}</strong><small>${data.count}ショット</small></div><span>${girPct===null?"GIR —":`GIR ${girPct}%`}</span></button><div id="${detailId}" class="shot-analysis-detail" hidden>${data.count?renderShotClubDetail(data):'<p class="analysis-note no-club-data">データがありません。</p>'}</div></div>`;}).join("")}</div>`:`<p class="analysis-note">クラブデータがありません。</p>`;
     const yardBuckets=[{label:"〜50yd",min:1,max:50},{label:"51〜75yd",min:51,max:75},{label:"76〜100yd",min:76,max:100},{label:"101〜125yd",min:101,max:125},{label:"126〜150yd",min:126,max:150},{label:"151〜175yd",min:151,max:175},{label:"176〜200yd",min:176,max:200},{label:"201yd〜",min:201,max:Infinity}].map((bucket,index)=>({...bucket,index,shots:[]}));
     girShots.forEach(shot=>{const bucket=yardBuckets.find(b=>shot.targetYards>=b.min&&shot.targetYards<=b.max); if(bucket)bucket.shots.push(shot);});
     const activeBuckets=yardBuckets.filter(b=>b.shots.length);
