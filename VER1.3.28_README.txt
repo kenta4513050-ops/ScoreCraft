@@ -1,0 +1,8 @@
+ScoreCraft Ver1.3.28
+
+- 履歴詳細のティーショット着弾表示を修正
+- 過去データ/楽天画像取込で保存される direction: "keep" を FWキープとして正しく認識
+- "keep" は履歴詳細で「・」表示
+- 履歴内の方向集計・FWキープ率でも "keep" をフェアウェイ扱いに統一
+- 既存の left / right / fairway / green / short / over の挙動は維持
+- PWA cache: scorecraft-v1.3.28

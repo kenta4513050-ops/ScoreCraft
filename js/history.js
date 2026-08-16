@@ -398,7 +398,7 @@ function normalizeHistoryDirection(value){
     const d=String(value||"").toLowerCase().trim();
     if(["left","l","左","←"].includes(d))return"left";
     if(["right","r","右","→"].includes(d))return"right";
-    if(["center","fairway","green","fwキープ","1on","中央"].includes(d))return"center";
+    if(["center","fairway","green","keep","fw","fwキープ","キープ","1on","中央","・"].includes(d))return"center";
     if(["short","手前"].includes(d))return"short";
     if(["over","オーバー"].includes(d))return"over";
     return"";
@@ -620,7 +620,7 @@ function historyShots(hole){
 function historyLanding(v){
     const d=String(v||"").toLowerCase().trim();
     if(["left","l","左","←"].includes(d))return"left"; if(["right","r","右","→"].includes(d))return"right";
-    if(["green","グリーンオン","on","1on"].includes(d))return"green"; if(["fairway","fw","fwキープ","center","中央","・"].includes(d))return"fairway";
+    if(["green","グリーンオン","on","1on"].includes(d))return"green"; if(["fairway","keep","fw","fwキープ","キープ","center","中央","・"].includes(d))return"fairway";
     if(["short","手前","↓"].includes(d))return"short"; if(["over","奥","オーバー","↑"].includes(d))return"over"; return"";
 }
 function historyLandingLabel(v){return ({left:"←",right:"→",green:"・",fairway:"・",short:"↓",over:"↑"})[historyLanding(v)]||"-";}
