@@ -1,0 +1,7 @@
+ScoreCraft Ver1.3.30
+
+- 設定 > 入力項目（カスタム）を現行5項目へ完全移行
+- 旧ショット系設定キーを整理し、shotInfoへ移行
+- settings/config JSにcache-bustingを追加
+- Penaltyのバンカー表示を B → 砂 に変更
+- PWA cache: scorecraft-v1.3.30

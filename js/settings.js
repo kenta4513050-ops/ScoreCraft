@@ -97,15 +97,8 @@ function saveSettings() {
     } else {
         enabledInputs.score = true;
         enabledInputs.putt = true;
-        enabledInputs.greenDistance = false;
         enabledInputs.shotInfo = true;
-        enabledInputs.teeClub = true;
-        enabledInputs.direction = true;
-        enabledInputs.curve = true;
-        enabledInputs.approachShot = true;
-        enabledInputs.ob = true;
-        enabledInputs.onePenalty = true;
-        enabledInputs.bunker = true;
+        enabledInputs.greenDistance = false;
         enabledInputs.memo = false;
     }
 

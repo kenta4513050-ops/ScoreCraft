@@ -13,21 +13,14 @@ const INPUT_MODES = Object.freeze({
 });
 
 const DEFAULT_CONFIG = Object.freeze({
-    version: 3,
+    version: 4,
     inputMode: INPUT_MODES.STANDARD,
     distanceUnit: "step",
     enabledInputs: Object.freeze({
         score: true,
         putt: true,
-        greenDistance: false,
         shotInfo: true,
-        teeClub: true,
-        direction: true,
-        curve: true,
-        approachShot: true,
-        ob: true,
-        onePenalty: true,
-        bunker: true,
+        greenDistance: false,
         memo: false
     })
 });
@@ -61,6 +54,10 @@ function normalizeConfig(value) {
                 base.enabledInputs[key] = source.enabledInputs[key];
             }
         });
+        if (typeof source.enabledInputs.shotInfo !== "boolean") {
+            const legacyShotKeys=["teeClub","direction","curve","approachShot","ob","onePenalty","bunker"];
+            if (legacyShotKeys.some(key=>source.enabledInputs[key]===true)) base.enabledInputs.shotInfo=true;
+        }
     }
 
     // スコアはどのモードでも必須。

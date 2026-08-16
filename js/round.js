@@ -1947,7 +1947,7 @@ function shotLandingDisplay(value) {
 }
 
 function shotPenaltyDisplay(value) {
-    return ({ob:"OB", onePenalty:"1P", bunker:"B", woods:"林"})[value] || "—";
+    return ({ob:"OB", onePenalty:"1P", bunker:"砂", woods:"林"})[value] || "—";
 }
 
 function syncLegacyFieldsFromShots(hole) {
@@ -1997,7 +1997,7 @@ function createShotPenaltyFlickField(hole, shot) {
         right:()=>{shot.penalty="onePenalty";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
         down:()=>{shot.penalty="bunker";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();},
         left:()=>{shot.penalty="woods";syncLegacyFieldsFromShots(hole);saveDraftRound();renderCurrentHole();}
-    },{centerLabel:"なし",options:{up:{label:"OB"},right:{label:"1P"},down:{label:"B"},left:{label:"林"}}});
+    },{centerLabel:"なし",options:{up:{label:"OB"},right:{label:"1P"},down:{label:"砂"},left:{label:"林"}}});
     field.appendChild(button); return field;
 }
 
@@ -2021,7 +2021,7 @@ function createCompactShotsSection(hole) {
         row.appendChild(createShotPenaltyFlickField(hole,shot));
         section.appendChild(row);
     });
-    const guide=document.createElement("div");guide.className="shot-flick-hint";guide.textContent="長押し→方向へフリック　着弾：← ・ → ↑ ↓　Penalty：←林 ↑OB →1P ↓B";section.appendChild(guide);
+    const guide=document.createElement("div");guide.className="shot-flick-hint";guide.textContent="長押し→方向へフリック　着弾：← ・ → ↑ ↓　Penalty：←林 ↑OB →1P ↓砂";section.appendChild(guide);
     return section;
 }
 
