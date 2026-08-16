@@ -1,0 +1,4 @@
+ScoreCraft Ver1.3.34
+- ゴルフ場追加・編集画面から「標準PAR72を入力」を削除
+- PAR一括入力、PARクリア、18ホール個別PAR入力は維持
+- PWA cache: scorecraft-v1.3.34
