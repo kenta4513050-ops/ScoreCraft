@@ -302,13 +302,20 @@ function calculateSplitStats(holes) {
         }
     });
 
+    const obCount=holes.reduce((sum,hole)=>sum+historyPenaltyCount(hole,"ob","ob"),0);
+    const onePenaltyCount=holes.reduce((sum,hole)=>sum+historyPenaltyCount(hole,"onePenalty","onePenalty"),0);
+    const bunkerCount=holes.reduce((sum,hole)=>sum+historyPenaltyCount(hole,"bunker","bunker"),0);
+
     return {
         score,
         putts,
         avgPuttDistance,
         fwRate:fwAttempts?fwKeeps/fwAttempts*100:null,
         parOnRate:onAttempts?parOn/onAttempts*100:null,
-        bogeyOnRate:onAttempts?bogeyOn/onAttempts*100:null
+        bogeyOnRate:onAttempts?bogeyOn/onAttempts*100:null,
+        obCount,
+        onePenaltyCount,
+        bunkerCount
     };
 }
 
@@ -333,7 +340,10 @@ function createSplitSummaryBlock(label, stats) {
         ["平均パット距離",formatDistance(stats.avgPuttDistance)],
         ["FWキープ率",formatRate(stats.fwRate)],
         ["パーオン率",formatRate(stats.parOnRate)],
-        ["ボギーオン率",formatRate(stats.bogeyOnRate)]
+        ["ボギーオン率",formatRate(stats.bogeyOnRate)],
+        ["OB数",formatNumber(stats.obCount)],
+        ["1ペナ数",formatNumber(stats.onePenaltyCount)],
+        ["バンカー数",formatNumber(stats.bunkerCount)]
     ].forEach(([name,value])=>{
         const item=document.createElement("div");
         item.className="round-split-stat";

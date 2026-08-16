@@ -1,0 +1,3 @@
+ScoreCraft Ver1.3.32
+- 履歴詳細の前半・後半・Total集計にOB数、1ペナ数、バンカー数を追加
+- PWA cache: scorecraft-v1.3.32
