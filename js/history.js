@@ -217,8 +217,8 @@ function showRoundDetail(roundId) {
 
     container.innerHTML = "";
     container.appendChild(createDetailSummary(round));
+    container.appendChild(createFrontBackTotalSummary(round));
     container.appendChild(createHoleScoreTable(round));
-    container.appendChild(createRoundAnalysis(round));
 
     section.hidden = false;
     section.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -250,18 +250,99 @@ function createDetailSummary(round) {
     heading.appendChild(course);
     heading.appendChild(meta);
 
-    const stats = document.createElement("div");
-    stats.className = "round-detail-stats";
-
-    stats.appendChild(createDetailStat("OUT", getNumberOrDash(round.out)));
-    stats.appendChild(createDetailStat("IN", getNumberOrDash(round.in)));
-    stats.appendChild(createDetailStat("TOTAL", getScore(round)));
-    stats.appendChild(createDetailStat("PUTT", getRoundPuttTotal(round)));
-
     wrapper.appendChild(heading);
-    wrapper.appendChild(stats);
 
     return wrapper;
+}
+
+
+function createFrontBackTotalSummary(round) {
+    const holes=Array.isArray(round?.holes)?round.holes:[];
+    const front=holes.filter(h=>Number(h?.hole)>=1&&Number(h?.hole)<=9);
+    const back=holes.filter(h=>Number(h?.hole)>=10&&Number(h?.hole)<=18);
+
+    const wrapper=document.createElement("section");
+    wrapper.className="round-split-summary";
+    wrapper.appendChild(createSplitSummaryBlock("前半",calculateSplitStats(front)));
+    wrapper.appendChild(createSplitSummaryBlock("後半",calculateSplitStats(back)));
+    wrapper.appendChild(createSplitSummaryBlock("Total",calculateSplitStats(holes)));
+    return wrapper;
+}
+
+function calculateSplitStats(holes) {
+    const validScores=holes.map(h=>Number(h?.score)).filter(Number.isFinite);
+    const validPutts=holes.map(h=>Number(h?.putts)).filter(Number.isFinite);
+
+    const score=validScores.length?validScores.reduce((sum,v)=>sum+v,0):null;
+    const putts=validPutts.length?validPutts.reduce((sum,v)=>sum+v,0):null;
+
+    const puttDistances=holes
+        .map(h=>Number(h?.greenDistance?.value))
+        .filter(v=>Number.isFinite(v)&&v>=0);
+    const avgPuttDistance=puttDistances.length
+        ?puttDistances.reduce((sum,v)=>sum+v,0)/puttDistances.length
+        :null;
+
+    let fwAttempts=0,fwKeeps=0,onAttempts=0,parOn=0,bogeyOn=0;
+
+    holes.forEach(hole=>{
+        const par=Number(hole?.par);
+
+        if(par===4||par===5){
+            fwAttempts++;
+            const tee=historyShots(hole)[0];
+            if(historyLanding(tee?.landing)==="fairway")fwKeeps++;
+        }
+
+        const greenOnStroke=historyFirstGreenShotNo(hole);
+        if(Number.isFinite(par)&&Number.isFinite(greenOnStroke)){
+            onAttempts++;
+            if(greenOnStroke<=par-2)parOn++;
+            if(greenOnStroke<=par-1)bogeyOn++;
+        }
+    });
+
+    return {
+        score,
+        putts,
+        avgPuttDistance,
+        fwRate:fwAttempts?fwKeeps/fwAttempts*100:null,
+        parOnRate:onAttempts?parOn/onAttempts*100:null,
+        bogeyOnRate:onAttempts?bogeyOn/onAttempts*100:null
+    };
+}
+
+function createSplitSummaryBlock(label, stats) {
+    const block=document.createElement("div");
+    block.className="round-split-block";
+
+    const title=document.createElement("h3");
+    title.textContent=label;
+    block.appendChild(title);
+
+    const grid=document.createElement("div");
+    grid.className="round-split-grid";
+
+    const formatNumber=value=>Number.isFinite(value)?String(Math.round(value)):"-";
+    const formatDistance=value=>Number.isFinite(value)?`${value.toFixed(1)}歩`:"-";
+    const formatRate=value=>Number.isFinite(value)?`${value.toFixed(1)}%`:"-";
+
+    [
+        ["スコア",formatNumber(stats.score)],
+        ["パット数",formatNumber(stats.putts)],
+        ["平均パット距離",formatDistance(stats.avgPuttDistance)],
+        ["FWキープ率",formatRate(stats.fwRate)],
+        ["パーオン率",formatRate(stats.parOnRate)],
+        ["ボギーオン率",formatRate(stats.bogeyOnRate)]
+    ].forEach(([name,value])=>{
+        const item=document.createElement("div");
+        item.className="round-split-stat";
+        item.innerHTML=`<span>${name}</span><strong>${value}</strong>`;
+        grid.appendChild(item);
+    });
+
+    block.appendChild(grid);
+    return block;
 }
 
 function createDetailStat(label, value) {
