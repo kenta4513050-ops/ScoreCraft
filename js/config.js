@@ -20,6 +20,7 @@ const DEFAULT_CONFIG = Object.freeze({
         score: true,
         putt: true,
         greenDistance: false,
+        shotInfo: true,
         teeClub: true,
         direction: true,
         curve: true,

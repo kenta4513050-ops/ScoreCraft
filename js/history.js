@@ -611,7 +611,13 @@ function escapeHtml(value) {
 
 // ===== Ver1.3.24 round detail overrides =====
 function historyShots(hole){
-    if(Array.isArray(hole?.shots) && hole.shots.length) return hole.shots;
+    if(Array.isArray(hole?.shots) && hole.shots.length){
+        const shots=hole.shots.map(s=>({...s}));
+        if(!shots[0]) shots[0]={clubId:"",landing:"",targetYards:null,penalty:""};
+        if(!shots[0].clubId && hole?.teeShot?.clubId) shots[0].clubId=hole.teeShot.clubId;
+        if(!shots[0].landing && hole?.teeShot?.direction) shots[0].landing=hole.teeShot.direction;
+        return shots;
+    }
     const result=[];
     if(hole?.teeShot && (hole.teeShot.clubId||hole.teeShot.direction)) result.push({clubId:hole.teeShot.clubId||"",landing:hole.teeShot.direction||"",targetYards:null,penalty:""});
     if(hole?.approachShot && (hole.approachShot.clubId||hole.approachShot.distanceYards!==null)) result.push({clubId:hole.approachShot.clubId||"",landing:hole.approachShot.greenOn===true?"green":"",targetYards:hole.approachShot.distanceYards,penalty:""});

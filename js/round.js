@@ -152,6 +152,8 @@ function initializeRound() {
 
     initializeEditModeSelector();
 
+    initializeRoundResetButton();
+
     renderCurrentHole();
 
 }
@@ -277,6 +279,7 @@ function getInputsForMode(mode) {
             score: true,
             putt: true,
             greenDistance: false,
+            shotInfo: false,
             teeClub: false,
             direction: false,
             curve: false,
@@ -295,6 +298,7 @@ function getInputsForMode(mode) {
             score: true,
             putt: true,
             greenDistance: false,
+            shotInfo: true,
             teeClub: true,
             direction: true,
             curve: true,
@@ -313,6 +317,7 @@ function getInputsForMode(mode) {
         score: custom.score ?? true,
         putt: custom.putt ?? true,
         greenDistance: custom.greenDistance ?? false,
+        shotInfo: custom.shotInfo ?? true,
         teeClub: custom.teeClub ?? false,
         direction: custom.direction ?? false,
         curve: custom.curve ?? false,
@@ -651,6 +656,7 @@ function getRoundConfig() {
             score: true,
             putt: true,
             greenDistance: false,
+            shotInfo: true,
             teeClub: true,
             direction: true,
             curve: true,
@@ -1694,8 +1700,8 @@ function renderInputArea(hole) {
     }
     area.appendChild(primary);
 
-    // Ver1.3.21: 1打目〜5打目を同じ形式で記録。
-    area.appendChild(createCompactShotsSection(hole));
+    // 1打目〜5打目のショット情報。
+    if (enabled.shotInfo !== false) area.appendChild(createCompactShotsSection(hole));
 
     // パット距離は従来どおり残す。
     if (enabled.greenDistance) {
@@ -1807,9 +1813,10 @@ function createFlickRadialGuide(button, options, centerLabel) {
 
     const rect=button.getBoundingClientRect();
     const radius=58;
-    const pad=70;
-    const x=Math.max(pad,Math.min(window.innerWidth-pad,rect.left+rect.width/2));
-    const y=Math.max(pad,Math.min(window.innerHeight-pad,rect.top+rect.height/2));
+    const horizontalPad=92;
+    const verticalPad=88;
+    const x=Math.max(horizontalPad,Math.min(window.innerWidth-horizontalPad,rect.left+rect.width/2));
+    const y=Math.max(verticalPad,Math.min(window.innerHeight-verticalPad,rect.top+rect.height/2));
     menu.style.left=`${x}px`;
     menu.style.top=`${y}px`;
 
@@ -3336,6 +3343,18 @@ function validateRound() {
 
 }
 
+
+function initializeRoundResetButton() {
+    const button=document.getElementById("resetRoundButton");
+    if(button) button.addEventListener("click",resetRoundInputs);
+}
+function resetRoundInputs() {
+    if(!roundState.round || !Array.isArray(roundState.round.holes))return;
+    if(!window.confirm("現在入力している18ホール分の内容をすべて消去しますか？\nコース・日付・PARは残ります。"))return;
+    roundState.round.holes=roundState.round.holes.map((hole,index)=>{const par=hole?.par??null;const fresh=createEmptyHole(index+1);fresh.par=par;return fresh;});
+    roundState.currentHole=1; roundState.round.currentHole=1; calculateTotals(); saveDraftRound(); renderCurrentHole();
+    const message=document.getElementById("message"); if(message)message.textContent="入力内容をリセットしました。";
+}
 
 // ============================================
 // 下書き保存・復元

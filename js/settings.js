@@ -8,14 +8,8 @@
 const INPUT_ITEMS = [
     { key: "score", name: "スコア" },
     { key: "putt", name: "パット数" },
-    { key: "greenDistance", name: "グリーン距離" },
-    { key: "teeClub", name: "ティーショットクラブ" },
-    { key: "direction", name: "ティーショット着弾方向" },
-    { key: "curve", name: "ティーショット曲がり方向" },
-    { key: "approachShot", name: "グリーン狙い（番手・残りヤード・オン）" },
-    { key: "ob", name: "OB" },
-    { key: "onePenalty", name: "1ペナ" },
-    { key: "bunker", name: "バンカー" },
+    { key: "shotInfo", name: "各打ショット情報（Club・狙いyd・着弾・Penalty）" },
+    { key: "greenDistance", name: "パッティング残り距離" },
     { key: "memo", name: "メモ" }
 ];
 
@@ -104,6 +98,7 @@ function saveSettings() {
         enabledInputs.score = true;
         enabledInputs.putt = true;
         enabledInputs.greenDistance = false;
+        enabledInputs.shotInfo = true;
         enabledInputs.teeClub = true;
         enabledInputs.direction = true;
         enabledInputs.curve = true;
