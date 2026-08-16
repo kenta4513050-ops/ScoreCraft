@@ -3124,6 +3124,22 @@ function finishRound() {
 
     }
 
+    const enteredScoreCount =
+        roundState.round.holes.filter(
+            hole =>
+                hole.score !== null &&
+                hole.score !== ""
+        ).length;
+
+    if (
+        enteredScoreCount < 18 &&
+        !window.confirm(
+            `未入力のホールが${18 - enteredScoreCount}ホールありますが保存しますか？`
+        )
+    ) {
+        return;
+    }
+
     const completedRound = {
 
         ...roundState.round,
@@ -3247,21 +3263,28 @@ function finishRound() {
 
     clearDraftRound();
 
-    let autoBackupResult = null;
-    if (typeof runScoreCraftAutoBackup === "function") {
+    let backupSuffix = "";
+    const wantsJsonBackup = window.confirm(
+        "ラウンドを保存しました。\nバックアップ（JSONデータ）も保存しますか？"
+    );
+
+    if (wantsJsonBackup && typeof runScoreCraftAutoBackup === "function") {
         try {
-            autoBackupResult = runScoreCraftAutoBackup(
+            const backupResult = runScoreCraftAutoBackup(
                 roundState.editMode ? "round-update" : "round-save",
                 { download: true }
             );
+
+            if (backupResult && !backupResult.skipped) {
+                backupSuffix = backupResult.downloaded
+                    ? " バックアップも保存しました。"
+                    : " バックアップを更新しました。";
+            }
         } catch (error) {
-            console.error("自動バックアップに失敗しました。", error);
+            console.error("バックアップに失敗しました。", error);
+            backupSuffix = " ※バックアップの保存に失敗しました。";
         }
     }
-
-    const backupSuffix = autoBackupResult && !autoBackupResult.skipped
-        ? (autoBackupResult.downloaded ? " バックアップも作成しました。" : " 端末内バックアップを更新しました。")
-        : "";
 
     showRoundMessage(
         (roundState.editMode
