@@ -1939,3 +1939,7 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
 
 /* Ver1.3.36 - score-driving shot KPI */
 .kpi-section{margin:0 0 22px;padding:13px;border:1px solid #dce7dd;border-radius:13px;background:#fbfdfb}.kpi-section:last-child{margin-bottom:0}.kpi-section-title{margin-bottom:12px}.kpi-section-title h3{margin:0;color:#246c2c;font-size:18px}.kpi-section-title p{margin:3px 0 0;color:var(--subtext);font-size:11px}.kpi-section h4{margin:16px 0 7px;color:#425348;font-size:13px}.kpi-section h4:first-of-type{margin-top:0}.kpi-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}.kpi-table{width:100%;min-width:500px;border-collapse:separate;border-spacing:0;border:1px solid #dce7dd;border-radius:10px;overflow:hidden;background:#fff;font-size:11px}.kpi-table th,.kpi-table td{padding:8px 7px;border-bottom:1px solid #e7eee8;text-align:center;white-space:nowrap}.kpi-table thead th{background:#eef7ef;color:#35633a;font-weight:800}.kpi-table tbody th{text-align:left;color:#263b2a;font-weight:800}.kpi-table tbody tr:last-child th,.kpi-table tbody tr:last-child td{border-bottom:0}.kpi-table small{color:var(--subtext);font-size:9px;font-weight:600}.kpi-rule{margin-top:6px;font-size:10px}@media(max-width:520px){.kpi-section{padding:10px}.kpi-table{min-width:470px}.kpi-table th,.kpi-table td{padding:7px 6px;font-size:10px}}
+
+/* Ver1.3.38 - KPI table readability */
+.kpi-table tbody th{color:#fff;}
+.kpi-table tbody th small{color:#fff;}

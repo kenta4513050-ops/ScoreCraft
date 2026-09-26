@@ -1,0 +1,7 @@
+ScoreCraft Ver1.3.38
+
+Changes
+- Improved Shot KPI table readability: first-column text on green cells is now white.
+- Tee-shot KPI rows are grouped by Par4 first, followed by Par5.
+- Applied the grouping to both club-based and landing/penalty-based score tables.
+- PWA cache updated to scorecraft-v1.3.38.

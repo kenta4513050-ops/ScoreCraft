@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.37 - analysis.js
+// ScoreCraft Ver1.3.38 - analysis.js
 // ============================================
 "use strict";
 
@@ -161,9 +161,9 @@ function renderTeeKpi(holes){
     const clubGroups={}; teeHoles.forEach(x=>{const id=teeShotForHole(x.hole).clubId;(clubGroups[id]??=[]).push(x);});
     const clubs=Object.keys(clubGroups).sort(compareGolfClubOrder);
     const clubRows=[];
-    clubs.forEach(id=>[4,5].forEach(par=>{const a=clubGroups[id].filter(x=>x.par===par);if(!a.length)return;clubRows.push([`${escapeHtml(getClubName(id))} <small>Par${par}</small>`,avgText(a.map(x=>x.score)),pct(a.filter(x=>x.score<=par+1).length,a.length),pct(a.filter(x=>x.score>=par+2).length,a.length),`${a.length}H`]);}));
+    [4,5].forEach(par=>clubs.forEach(id=>{const a=clubGroups[id].filter(x=>x.par===par);if(!a.length)return;clubRows.push([`${escapeHtml(getClubName(id))} <small>Par${par}</small>`,avgText(a.map(x=>x.score)),pct(a.filter(x=>x.score<=par+1).length,a.length),pct(a.filter(x=>x.score>=par+2).length,a.length),`${a.length}H`]);}));
     const outcomeOrder=["FW","左","右","林","砂","1ペナ","OB","その他"], outcomeRows=[];
-    outcomeOrder.forEach(outcome=>[4,5].forEach(par=>{const a=teeHoles.filter(x=>x.par===par&&teeOutcome(x)===outcome);if(!a.length)return;outcomeRows.push([`${outcome} <small>Par${par}</small>`,avgText(a.map(x=>x.score)),pct(a.filter(x=>x.score<=par+1).length,a.length),pct(a.filter(x=>x.score>=par+2).length,a.length),`${a.length}H`]);}));
+    [4,5].forEach(par=>outcomeOrder.forEach(outcome=>{const a=teeHoles.filter(x=>x.par===par&&teeOutcome(x)===outcome);if(!a.length)return;outcomeRows.push([`${outcome} <small>Par${par}</small>`,avgText(a.map(x=>x.score)),pct(a.filter(x=>x.score<=par+1).length,a.length),pct(a.filter(x=>x.score>=par+2).length,a.length),`${a.length}H`]);}));
     const playableRows=clubs.map(id=>{const a=clubGroups[id];return [escapeHtml(getClubName(id)),pct(a.filter(isPlayableTee).length,a.length),`${a.filter(isPlayableTee).length}/${a.length}`];});
     const obRows=clubs.map(id=>{const a=clubGroups[id],obs=a.filter(x=>teeOutcome(x)==="OB"),left=obs.filter(x=>teeShotForHole(x.hole).landing==="left").length,right=obs.filter(x=>teeShotForHole(x.hole).landing==="right").length;let tendency="—";if(obs.length)tendency=left>right?`左 ${left}/${obs.length}`:right>left?`右 ${right}/${obs.length}`:`左右同数 ${left}/${obs.length}`;return [escapeHtml(getClubName(id)),pct(obs.length,a.length),tendency,`${a.length}H`];});
     const body=`<h4>使用クラブごとの平均スコア</h4>${kpiTable(["クラブ","平均","ボギー以下","ダボ以上","数"],clubRows)}<h4>着弾・ペナルティごとの平均スコア</h4>${kpiTable(["結果","平均","ボギー以下","ダボ以上","数"],outcomeRows)}<h4>使用クラブごとのプレー可能エリア率</h4>${kpiTable(["クラブ","OK率","OK/全体"],playableRows)}<p class="analysis-note kpi-rule">OK＝FW・左・右。NG＝林・砂・1ペナ・OB・その他。</p><h4>クラブごとのOB率・ミス方向</h4>${kpiTable(["クラブ","OB率","OB方向","数"],obRows)}`;
