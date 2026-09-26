@@ -1,0 +1,7 @@
+ScoreCraft Ver1.3.39
+
+- Tee KPI tables now group PAR4 and PAR5 using a single merged PAR cell.
+- Renamed count headers to サンプル数.
+- Tee result rows are limited to FW / 左ラフ / 右ラフ / バンカー / OB / 1ペナ.
+- Renamed プレー可能エリア率 to OKエリア率.
+- Updated PWA cache to scorecraft-v1.3.39.

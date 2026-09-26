@@ -8,7 +8,7 @@
 
 const APP = {
     name: "ScoreCraft",
-    version: "1.3.38",
+    version: "1.3.39",
     slogan: "Record. Analyze. Improve."
 };
 

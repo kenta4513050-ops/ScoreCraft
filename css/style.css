@@ -1943,3 +1943,8 @@ body.reference-longpress-fullscreen .reference-image-sticky.has-images .referenc
 /* Ver1.3.38 - KPI table readability */
 .kpi-table tbody th{color:#fff;}
 .kpi-table tbody th small{color:#fff;}
+
+
+/* Ver1.3.39 - grouped PAR labels */
+.kpi-grouped-table .kpi-par-cell{background:#2e7d32;color:#fff;text-align:center;vertical-align:middle;font-weight:800;}
+.kpi-grouped-table tbody tr:not(:last-child) .kpi-par-cell{border-bottom:1px solid #e7eee8;}
