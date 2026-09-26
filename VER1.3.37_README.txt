@@ -1,0 +1,13 @@
+ScoreCraft Ver1.3.37
+
+Ver1.3.36 分析ページ修正版。
+
+修正内容:
+- ショットKPIで使用する着弾方向正規化関数 normalizeShotLanding() を追加
+- fairway / green / left / right / short / over / miss の既存保存値を分析用に安全に正規化
+- 分析ページの初期描画がショットKPIで停止しないことを確認
+- ティーショット、セカンド、アプローチ、パット距離の各分析を既存バックアップデータで実行確認
+- JavaScript構文チェック実施
+- 既存ラウンド保存形式は変更なし
+
+PWA cache: scorecraft-v1.3.37

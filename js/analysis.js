@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.36 - analysis.js
+// ScoreCraft Ver1.3.37 - analysis.js
 // ============================================
 "use strict";
 
@@ -378,6 +378,17 @@ function sumHoleValue(key){return analysisRounds.reduce((rt,r)=>rt+getHoles(r).r
 function getHoles(round){return Array.isArray(round?.holes)?round.holes:[];}
 function getRoundScore(round){const total=Number(round?.total);if(Number.isFinite(total)&&total>0)return total;return getHoles(round).reduce((s,h)=>s+(Number.isFinite(Number(h?.score))?Number(h.score):0),0);}
 function getRoundTime(round){const t=new Date(round?.completedAt||round?.date||round?.updatedAt||round?.createdAt).getTime();return Number.isFinite(t)?t:0;}
+function normalizeShotLanding(value){
+    const d=String(value||"").toLowerCase().trim();
+    if(["fairway","fw","fwキープ","center","centre","middle","中央","真ん中","straight","ストレート"].includes(d))return "fairway";
+    if(["green","greenon","green-on","on","1on","グリーン","グリーンオン"].includes(d))return "green";
+    if(["left","l","左","←"].includes(d))return "left";
+    if(["right","r","右","→"].includes(d))return "right";
+    if(["short","手前","↓"].includes(d))return "short";
+    if(["over","long","オーバー","奥","↑"].includes(d))return "over";
+    if(["miss","ミス"].includes(d))return "miss";
+    return "";
+}
 function normalizeCurve(value){const d=String(value||"").toLowerCase().trim();if(["left","左","左曲がり","draw","hook"].includes(d))return"left";if(["right","右","右曲がり","fade","slice"].includes(d))return"right";if(["straight","center","まっすぐ","ストレート"].includes(d))return"straight";return"";}
 function normalizeDirection(value){const d=String(value||"").toLowerCase().trim();if(["left","l","左","←"].includes(d))return"left";if(["right","r","右","→"].includes(d))return"right";if(["center","centre","straight","middle","c","中央","真ん中","ストレート","fairway","green","fwキープ","1on","グリーンオン"].includes(d))return"center";if(["short","手前","↓"].includes(d))return"short";if(["over","オーバー","↑"].includes(d))return"over";return"";}
 function getClubName(id){return ANALYSIS_CLUB_NAMES[id]||String(id).toUpperCase();}
