@@ -1,0 +1,7 @@
+ScoreCraft Ver1.3.40
+
+Changes:
+- Added 林 to the 着弾・ペナルティごとの平均スコア table.
+- 1ペナ is always shown in the table even when its sample count is zero.
+- All requested result categories (FW / 左ラフ / 右ラフ / 林 / バンカー / OB / 1ペナ) remain visible for both PAR4 and PAR5.
+- Updated app version and PWA cache to 1.3.40.

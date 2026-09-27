@@ -1,5 +1,5 @@
 // ============================================
-// ScoreCraft Ver1.3.39 - analysis.js
+// ScoreCraft Ver1.3.40 - analysis.js
 // ============================================
 "use strict";
 
@@ -168,8 +168,8 @@ function renderTeeKpi(holes){
     const clubs=Object.keys(clubGroups).sort(compareGolfClubOrder);
     const clubParGroups=[4,5].map(par=>({label:`PAR${par}`,rows:clubs.map(id=>{const a=clubGroups[id].filter(x=>x.par===par);if(!a.length)return null;return [escapeHtml(getClubName(id)),avgText(a.map(x=>x.score)),pct(a.filter(x=>x.score<=par+1).length,a.length),pct(a.filter(x=>x.score>=par+2).length,a.length),`${a.length}H`];}).filter(Boolean)})).filter(g=>g.rows.length);
 
-    const outcomeDefs=[["FW","FW"],["左","左ラフ"],["右","右ラフ"],["砂","バンカー"],["OB","OB"],["1ペナ","1ペナ"]];
-    const outcomeParGroups=[4,5].map(par=>({label:`PAR${par}`,rows:outcomeDefs.map(([key,label])=>{const a=teeHoles.filter(x=>x.par===par&&teeOutcome(x)===key);if(!a.length)return null;return [label,avgText(a.map(x=>x.score)),pct(a.filter(x=>x.score<=par+1).length,a.length),pct(a.filter(x=>x.score>=par+2).length,a.length),`${a.length}H`];}).filter(Boolean)})).filter(g=>g.rows.length);
+    const outcomeDefs=[["FW","FW"],["左","左ラフ"],["右","右ラフ"],["林","林"],["砂","バンカー"],["OB","OB"],["1ペナ","1ペナ"]];
+    const outcomeParGroups=[4,5].map(par=>({label:`PAR${par}`,rows:outcomeDefs.map(([key,label])=>{const a=teeHoles.filter(x=>x.par===par&&teeOutcome(x)===key);return [label,avgText(a.map(x=>x.score)),a.length?pct(a.filter(x=>x.score<=par+1).length,a.length):"—",a.length?pct(a.filter(x=>x.score>=par+2).length,a.length):"—",`${a.length}H`];})}));
 
     const playableRows=clubs.map(id=>{const a=clubGroups[id];return [escapeHtml(getClubName(id)),pct(a.filter(isPlayableTee).length,a.length),`${a.filter(isPlayableTee).length}/${a.length}`];});
     const obRows=clubs.map(id=>{const a=clubGroups[id],obs=a.filter(x=>teeOutcome(x)==="OB"),left=obs.filter(x=>teeShotForHole(x.hole).landing==="left").length,right=obs.filter(x=>teeShotForHole(x.hole).landing==="right").length;let tendency="—";if(obs.length)tendency=left>right?`左 ${left}/${obs.length}`:right>left?`右 ${right}/${obs.length}`:`左右同数 ${left}/${obs.length}`;return [escapeHtml(getClubName(id)),pct(obs.length,a.length),tendency,`${a.length}H`];});
